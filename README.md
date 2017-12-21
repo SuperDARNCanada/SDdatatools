@@ -1,3 +1,1 @@
-echo # mapping
-# mapping
 # mapping
