@@ -14,32 +14,38 @@
 #---------------------------------------
 #
 #What does this script do? 
-#   1. Unzips fitcon data for a given date and hemisphere
-#   2. Places all data into a folder with the date and hemisphere in the folder name
-#   3. Obtains omni files from the website (if needed) for the given date
-#   4. Parses omni file to IMF format
-#   5. Generates convections maps for the given day (post script format .ps)
-#   6. Converts post script files to pdf format
-#   7. Reports all errors to stderr and warnings to stdout 
+#   1. Unzips fitcon data for a given radar extensions and hemisphere
+#   2. Places all data into a folders with the path date/hemisphere/current_data/
+#   3. Obtains omni files from the website https://omniweb.sci.gsfc.nasa.gov/form/dx1.html
+#           if there is no omni file or the omni data has been updated since the download
+#   4. Parses the omni file into IMF format
+#   5. Generates convection maps for the given day or time range
+#   6. Converts post script files to a given image extension (pdf format is the default)
+#   7. Reports all errors to stderr and warnings to stdout (Note: rst functions print only to stderr :( )
 #
 #----------------------------------------
 #   How to run
 #---------------------------------------
 #   1. Get off your chair and move your legs really fast (joking)
 #   2. step one! Make sure rst is installed 
-#   3. Make sure you have the fitcon data and extensions files 
-#   4. Run: 
-#           ./mappot_fitcon.sh <hemisphere (north or south)> <YYYYMMDD>
-#   5. If you want it to run with verbose output:
-#           ./mappot_fitcon.sh <hemisphere (north or south)> <YYYYMMDD> -vb
+#   3. Make sure you have all the files in the git repo: https://github.com/SuperDARNCanada/mapping/tree/master
+#       -> mappot_fitacf
+#       -> instal.sh
+#       -> north_extensions south_extensions 
+#       -> rainbow.key 
+#   4. Setup: 
+#           source install.sh
+#       4.a) if you do not want to run this script everytime you open a terminal then copy the contents of the file into your .bashrc file 
+#               make sure you change all `pwd` commands to the directory they are located. 
+#   5. Simple Run:
+#           cd to/fitcon/data/
+#           mappot_fitcon --date 20171114 --hemi north 
+#      This will generate convection maps for the date 20171114 for the nothern hemisphere
+#       The maps can be found in: 
+#           ./20171114/north/<current date>/
+#           5a. For more options
+#               mappot_fitacf --help
 #
-#   Example:
-#       To generate convection maps for the southern hemisphere for the date 2017-11-01
-#       $ ./mappot_fitcon.sh south 20171101 
-#       To generate convection maps for the northern hemisphere for the date 2017-11-01
-#       $ ./mappot_fitcon.sh north 20171101
-#       with the verbose option
-#       $ ./mappot_fitcon.sh north 20171101 -vb
 
 
 
@@ -51,12 +57,23 @@
 # -1 : command error
 # 0  : successful
 # 1  : not enough arguements
-# 2  : file not found
+# 2  : error file not found
 # 3  : empty file
 # 4  : segfault
 # 5  : rst function failure
+# 7  : error bad value
 
-
+#-----------------------------------------
+#   Error Variables
+#-----------------------------------------
+ERRCMD=-1
+SUCCESS=0
+ERRARG=1
+ERRFILENOTFOUND=2
+ERREMPTYFILE=3
+ERRSEG=4
+ERRRST=5
+ERRVALUE=6
 
 #-------------------------------------------
 #   Default values
@@ -64,7 +81,7 @@
 
 INTEGRATIONTIME=120 # 120 seconds -> 2 minutes, standard integration time
 MINIMUMRANGE=2  
-FMAX=30000000
+#FMAX=30000000
 VEMAX=1000000
 DELAY=600 # 600 seconds -> 10 minutes this is the defualt delay time for omni sattalite information
 #KEYFILE="../rainbow.key"
@@ -94,14 +111,14 @@ function arguement_check(){
     then 
         echo "Error: $# passed in, expecting 3" >&2
         echo "Usage: arguement_check <number of arguements> <expected number> <usage message>" >&2
-        exit 1;
+        exit $ERRARG;
     fi
 
     if [ $1 -ne $2 ]
     then
         echo "Error: $1 passed in, expecting $2" >&2
         echo "Usage: $3" >&2
-        exit 1;
+        exit $ERRARG;
     fi
 }
 
@@ -124,13 +141,13 @@ function error_check(){
     # $# - number of arguements
     arguement_check $# 3 "error_check <exit value of the function> <function name> <error code value>"
 
-    if [ $1 -ne 0 ]
+    if [ $1 -ne $SUCCESS ]
     then
         echo "Error: $2 function exited with the following value: $1" >&2
         if [ $1 -eq 139 ]
         then
             echo "Error: Segfault occured" >&2
-            exit 4;
+            exit $ERRSEG;
         fi
         exit $3;
     fi
@@ -178,9 +195,9 @@ function warning_file_check()
      then
          echo "Warning: $1 is empty, it will not be included in the convection map process"
          rm -f $1
-         return -1;
+         return $ERREMPTYFILE;
      fi
-     return 0;
+     return $SUCCESS;
 
 }
 #------------------------------------------------------
@@ -204,14 +221,37 @@ function file_check()
 
     warning_file_check $1 > /dev/null
     # $? - return value of the previously ran command
-    if [ $? -ne 0 ]
+    if [ $? -ne $SUCCESS ]
     then
         echo "Error: $1 is empty"
-        exit 3;
+        exit $ERREMPTYFILE;
     fi
+
+    return $SUCCESS
 }
 
 
+#------------------------------------------------------
+#debug_log:
+#   logs information when debug mode is set
+# purpose: Created this function because rst prints
+#           file content to stdout and messages to stderr
+#
+# parameters: 
+#       $1: message
+#------------------------------------------------------
+
+function debug_log()
+{
+    arguement_check $# 1 "debug log <message>"
+    
+    if [ $degbug -ne 0 ]
+    then
+        printf '%s' $1 >> `pwd`/debug.log
+    fi
+
+    return $SUCCESS
+}
 
 #------------------------------------------------------
 #warning_file_check:
@@ -233,13 +273,237 @@ function cleanup()
     arguement_check $# 1 "cleanup <file name>"
 
 
-    rm -f ${1}.grd 
-    rm -f ${1}.*.grid
+    rm -f $plot_path/${1}.grd 
+    rm -f $plot_path/${1}.*.grid
 
-    rm -f ${1}.hmb.map
-    rm -f ${1}.*.map
-    rm -f ${1}.empty.map
+    rm -f $plot_path/${1}.hmb.map
+    rm -f $plot_path/${1}.*.map
+    rm -f $plot_path/${1}.empty.map
 }
+
+#------------------------------------------------------
+#get_hemispheres_extensions:
+#          parses the hemisphere and stores the radar extensions
+# purpose: Encapsolate getting radar extensions for a given hemisphere
+#
+# parameters: 
+#------------------------------------------------------
+
+function get_hemisphere_extensions()
+{
+
+    if ! ls ${fitacf_path}/${filename}.* 1> /dev/null 2>&1;
+    then
+        echo "Error: There are no data files for this given date/name $filename"
+        exit $ERRFILENOTFOUND;
+    fi
+
+
+    #Reads in the data file extensions 
+    if [ "$hemisphere" == "south" ]
+    then
+        # -f : check for the existance of a file
+        # !  : Negation
+        if [ ! -f "${MAPPOTEXTENSIONSPATH}/south_extensions" ]
+        then 
+            echo "Error: south_extensions file is missing"
+            echo "       You can download it off the github page: https://github.com/SuperDARNCanada/mapping"
+            echo "       Please make sure the MAPPOTEXTENSIONSPATH is set correctly "
+            exit $ERRFILENOTFUND;
+        else
+            hemisphere_option="-sh"
+            #Reads a file into an array 
+            readarray radar_extensions < "${MAPPOTEXTENSIONSPATH}/south_extensions"
+        fi
+    elif [ "$hemisphere" == "north" ]
+    then
+        if [ ! -f "${MAPPOTEXTENSIONSPATH}/north_extensions" ]
+        then 
+            echo "Error: north_extensions file is missing"
+            echo "       You can download it off the github page: https://github.com/SuperDARNCanada/mapping"
+            echo "       Please make sure the MAPPOTEXTENSIONSPATH is set correctly "
+            exit $ERRFILENOTFOUND;
+        else
+            hemisphere_option=""
+            readarray radar_extensions < "${MAPPOTEXTENSIONSPATH}/north_extensions"
+        fi
+    else
+        echo "Error: $hemisphere is not an option for the -hemi option, please either use south or north " >&2
+        exit $ERRVALUE;
+    fi
+    
+    return $SUCCESS
+
+}
+
+#------------------------------------------------------
+#update_paths:
+#          after parsing the options of the script, update any paths and create directories 
+# purpose: Encapsolate path updating. 
+#
+# parameters: 
+#------------------------------------------------------
+
+function update_paths()
+{
+    if [ ! -z $map_path ]
+    then
+        map_path=$map_path/$filename/$hemisphere/$current_date
+        mkdir -p $map_path
+
+    fi
+    plot_path=$plot_path/$filename/$hemisphere/$current_date
+    
+    if [ ! -z $omni_path ]
+    then
+        omni_path=$omni_path/$filename/$current_date
+        mkdir -p $omni_path
+    fi
+    
+    omni_filename="omni_${filename}_${current_date}.txt"
+    imf_filename="imf_${filename}_${current_date}.txt"
+
+    mkdir -p $plot_path
+
+    return $SUCCESS
+}
+
+#------------------------------------------------------
+#fitacf_to_grid:
+#          generate the appropriate grid files from the fitacf
+#               -> generates multiple grid files if the fitacf file stores various channels
+#               -> generates data on scan flags of -1 ... this needs to be fixed in rst
+# purpose: Encapsolate the grid generation process for parallization. 
+#
+# parameters: 
+#               $1 : fitacf filename
+# 
+#------------------------------------------------------
+
+
+function fitacf_to_grid()
+{
+
+    local grid_filename
+    local scan_flag_error
+    local scan_flag_options
+    local channelA
+    local channelB
+
+    local fitacf_filename
+    fitacf_filename=$1
+
+
+    local fitacf_date
+    fitacf_date="${filename%.*}"
+    debug_log "fitacf_date=$fitacf_date"
+
+    #if the data does not exist then check for gz file
+    #extract the gz file; otherwise throw a warning that the file
+    #does not exist
+    if [ ! -f "${fitacf_path}/${fitacf_filename}" ]
+    then
+           
+        if [ -f "${fitacf_path}/${fitacf_filename}.gz"  ]
+        then
+            debug_log "gzip -d ${fitacf_path}/${fitacf_filename}.gz"
+            gzip -d ${fitacf_path}/${fitacf_filename}.gz 2>&1; 
+            error_check $? "gzip" $ERRCMD;
+            
+            debug_log "cp  -u ${fitacf_path}/${fitacf_filename} $plot_path/;"
+            cp  -u ${fitacf_path}/${fitacf_filename} $plot_path/;
+            error_check $? "cp" $ERRCMD;
+       else
+           echo "Warning: ${fitacf_filename}.gz does not exist, this file will not be included in the convection map";
+            debug_log "Warning: ${fitacf_filename}.gz does not exist, this file will not be included in the convection map"
+           return $ERRFILENOTFOUND
+        fi
+                   
+    else
+        debug_log "cp -u ${fitacf_path}/${fitacf_filename} $plot_path"
+        cp -u ${fitacf_path}/${fitacf_filename} $plot_path
+        error_check $? "cp" $ERRCMD;
+    fi
+
+    # A case where we do not want to stop if the file is empty
+    debug_log "warning_file_check $fitacf_filename"
+    warning_file_check $fitacf_filename
+    if [ $? -ne $SUCCESS ]
+        then
+            return $ERREMPTYFILE;
+    fi
+
+    #parse the fitacf filename to only get the date and the radar extension
+    grid_filename=`sed -e 's/\(.*\)\.C0\.\(.*\)\.fitacf/\1.\2/' <<< $fitacf_filename`
+    error_check $? "sed $fitacf_filename" $ERRCMD;
+    debug_log "grid_filename=$grid_filename"
+
+    #dmapdump is an rst function that pasrses the binary fitacf file to a human readable file
+    #parse the fitacf file to find scan values of -1 
+    #For a few radar -1 is used to inidicate backward scanning however, rst does not handling this 
+    #value gracefully and the current fix is to set the option -tl
+    scan_flag_error=`dmapdump $fitacf_filename | grep -c '\"scan\" = -1'`
+    debug_log "scan_flag_error=$scan_flag_error"
+
+    if [ $scan_flag_error -ne 0 ]
+    then
+        scan_flag_options="-tl 60" # currently using 60 because of new radar scan times
+        #this magic number does not seem to have a huge affect on the data however, it is not good practice to 
+        #use magic numbers without meaning :(
+    else
+        scan_flag_options=""
+    fi
+    debug_log "scan_flag_option=$scan_flag_options"
+   
+    #parse the fitacf files to see if they are just mono or have stereo channels
+    channelA=`dmapdump $fitacf_filename | grep -c '\"channel\" = 1'`
+    channelB=`dmapdump $fitacf_filename | grep -c '\"channel\" = 2'`
+    monoChannel=`dmapdump $fitacf_filename | grep -c '\"channel\" = 0'`
+
+    debug_log "channelA=$channelA"
+    debug_log "channelB=$channelB"
+    debug_log "monoChannel=$monoChannel"
+
+    #make_grid options:
+    #   -i      : integration time <-- 2 minutes 
+    #   -minrng : exclude data from range gates lower than minrange
+    #   -fmax   : set the maximum allowed variation in frequency to be fmax Hz
+    #   -vemax  : exclude data with a velocity error greater than vemax m/s
+    #   -tl tlen: ignore scan flag in the fitacf file and use a fixed scan length tlen 
+
+    #generate grid files based on channel values
+    if [ $monoChannel -gt 0 ]
+    then
+        debug_log "make_grid  $filesystem $verbose -xtd $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.grid"
+
+        make_grid  $filesystem $verbose -xtd $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.grid
+        warning_check $? "make grid" 
+        warning_file_check ${grid_filename}.grid
+    fi
+
+    if [ $channelA -gt 0 ]
+    then
+
+        debug_log "make_grid  $filesystem $verbose -xtd -cn A $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -fmax $FMAX -vemax $VEMAX $fitacf_filename > ${grid_filename}.A.grid"
+
+        make_grid  $filesystem $verbose -xtd -cn A $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -fmax $FMAX -vemax $VEMAX $fitacf_filename > ${grid_filename}.A.grid
+        warning_check $? "make grid" 
+        warning_file_check ${grid_filename}.A.grid
+    fi
+
+    if [ $channelB -gt 0 ]
+    then
+        debug_log "make_grid  $filesystem $verbose -xtd -cn B $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -fmax $FMAX -vemax $VEMAX $fitacf_filename > ${grid_filename}.B.grid"
+        
+        make_grid  $filesystem $verbose -xtd -cn B $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -fmax $FMAX -vemax $VEMAX $fitacf_filename > ${grid_filename}.B.grid
+        warning_check $? "make grid" 
+        warning_file_check ${grid_filename}.B.grid
+    fi
+
+    return $SUCCESS;
+
+}
+
 
 
 #
@@ -256,93 +520,172 @@ function cleanup()
 #       then formats it into IMF format
 # purpose: Download and parse omni data into an IMF format 
 #
-# parameters: 
-#       $1: date
 #------------------------------------------------------
 
 function get_omni_file()
 {
- 
-    # $# - number of arguements
-    arguement_check $# 1 "get_omni_file <date>"
+  
+    local epoch_date
+    local start_date
+    
+    local start_time
+    local end_time
+    local diff_time
+
+    local omni_url
+    local corrected_url
+
+    local bad_imf_data_counter
+    local imf_data_counter
+
+    local month
+    local day
 
     #Same trick rst uses
     #Convert to EPOCH UNIX time to save the grief on determining the past days date
-    local epoch_date=`date +%s -d "$1 0000"`
-    epoch_date=$((epoch_date - 600))
-    
-    #Omni on does the dates upto the hour so we cannot put minutes in
-    #However, rst does account for extra data added to the file and will look for when the ground time and the delayed sattalite time matches up. 
-    #We just need to make sure we are far enough back in the past... or else rst just substitutes 9999 in ... le sigh
-    local start_date=`date -d @$epoch_date +"%Y%m%d%H"`
-    
+    epoch_date=`date +%s -d "$filename 0000"`
+    error_check $? "date $filename" $ERRCMD
+    debug_log "epoch_date=$epoch_date before delay"
 
-    #Timming how fast downloading a daily file takes
+    epoch_date=$((epoch_date - $DELAY))
+    debug_log "epoch_date=$epoch_date after delay"
+
+    #Omni on does the dates upto the hour so we cannot put minutes in
+    #However, rst does account for extra data added to the file and will look 
+    #   for when the ground time and the delayed sattalite time matches up. 
+    #We just need to make sure we are far enough back in the past...
+    #   or else rst just substitutes 9999 in ... le sigh
+    start_date=`date -d @$epoch_date +"%Y%m%d%H"`
+    error_check $? "start $epoch_fate" $ERRCMD
+    debug_log "start_date=$start_date"
+
+
+    #Time the download process of the omni file
     if [ "$verbose" == "-vb" ]
     then
-        local START=$(date +%s.%N)
+        start_time=$(date +%s.%N)
+        debug_log "start_time=$start_time"
     fi
 
-     #Submit the omni variables to the website and obtain the url where the lst file is stored
-   
-    local omni_url=`curl -d  "activity=ftp&res=min&spacecraft=omni_min&start_date=${start_date}&end_date=${1}23&vars=13&vars=14&vars=17&vars=18&submit=Submit" https://omniweb.sci.gsfc.nasa.gov/cgi/nx1.cgi \
+    #Submit the omni variables to the website and obtain the url where the lst file is stored 
+    omni_url=`curl -d  "activity=ftp&res=min&spacecraft=omni_min&start_date=${start_date}&end_date=${filename}23&vars=13&vars=14&vars=17&vars=18&submit=Submit" https://omniweb.sci.gsfc.nasa.gov/cgi/nx1.cgi \
                         | grep -oh http.*.lst\" \
                         | grep -oh http.*.lst `
+    debug_log "omni_url=$omni_url"
+
     # -z : checks if the content of a variable is zero "empty"
     if [ -z $omni_url ]
     then
-        echo "Warning: No Omni file for this given date: $1 "
-        return 2;
+        echo "Warning: No Omni file for this given date: $filename"
+        debug_log "Warning: No Omni file for this given date: $filename"
+        return $ERRFILENOTFOUND;
     fi
 
     #for some reason the url is http but to curl (download) the file you need https
     # because that is where it is actually stored... 
     #using sed to replace http with  https
     corrected_url=`sed 's\http\https\g' <<< $omni_url`
-    
+    error_check $? "sed $omni_url" $ERRCMD
+    debug_log "corrected_url=$corrected_url"
+
     #download the omni file for the given data
     #The original omni file is kept for debugging purposes :)        
-    curl $corrected_url > omni_${1}_original.txt
+    curl $corrected_url > $omni_filename
+    warning_check $? "curl $omni_filename" $ERRCMD
+    debug_log "corrected_url=$corrected_url"
 
     if [ "$verbose" == "-vb" ]
     then 
-        local END=$(date +%s.%N)
-        local DIFF=$(echo "$END - $START" | bc)
-        echo "curl download time: $DIFF seconds"
+        end_time=$(date +%s.%N)
+        diff_time=$(echo "$end_time - $start_time" | bc)
+        echo "curl download time: $diff_time seconds"
+        debug_log "end_time=$end_time"
+        debug_log "diff_time=$diff_time"
+        debug_log "curl download time: $diff_time seconds" 
     fi
 
-    local omni_file=omni_${1}_original.txt
-    local bad_imf_data=0
-    local imf_data=0
+    if [ -z $omni_filename ]
+    then
+        echo "Warning: No Omni file was downloaded"
+        exit $ERRFILENOTFOUND
+    fi
 
+    #Used to detemine if there was any good data in the omni file. 
+    #If not then we should not use it because rst will just throw garbage values in
+    bad_imf_data_counter=0
+    imf_data_counter=0
+    debug_log "bad_imf_data_counter=$debug_imf_data_counter"
+    debug_log "imf_data_counter=$imf_data_counter"
     
     #doy- day of the year
     #Note: We do not throw away bad data, rst knows how to handle it... sort of
     #      Refer to IMF observations of the readme to see various outcomes. 
     while IFS=" " read -r year doy hour minute IMFmagnitude bx by bz;
     do 
-        imf_data=$((imf_data + 1))
+        debug_log "year=$year"
+        debug_log "doy=$doy"
+        debug_log "hour=$hour"
+        debug_log "minute=$minute"
+        debug_log "IMFmagnitude=$IMFmagnitude"
+        debug_log "bx=$bx"
+        debug_log "by=$by"
+        debug_log "bz=$bz"
+
+
+        imf_data_counter=$((imf_data_counter + 1))#<--- bash math :/
+        debug_log "bad_imf_data_counter=$debug_imf_data_counter"
+        debug_log "imf_data_counter=$imf_data_counter"
+
+
         # $bx%%.* <-- gets the whole number
         # bash has a funny way of comparing floats so this is easier... 
         if [ "${bx%%.*}" -gt 999  ]
         then
-            bad_imf_data=$((bad_imf_data + 1))
+            bad_imf_data_counter=$((bad_imf_data_counter + 1))
+            debug_log "bad_imf_data_counter=$debug_imf_data_counter"
+            debug_log "imf_data_counter=$imf_data_counter"
+
         fi
 
-        local month=`date -d "${year}0101 + ${doy} days - 1 day" +"%m"`
-        local day=`date -d "${year}0101 + ${doy} days - 1 day" +"%d"`
-        printf "%s %s %s %d %d 00 %f %f %f\n" $year $month $day $hour $minute $bx $by $bz >> omni_${1}.txt
-    done < $omni_file
+        #get the month and day from doy
+        month=`date -d "${year}0101 + $doy days - 1 day" +"%m"`
+        day=`date -d "${year}0101 + $doy days - 1 day" +"%d"`
+        debug_log "month=$month"
+        debug_log "day=$day"
 
-    #this obsolete right now... never a better way to determine when the data is bad.
-    if [ $imf_data -eq $bad_imf_data ]
+        printf "%s %s %s %d %d 00 %f %f %f\n" $year $month $day $hour $minute $bx $by $bz 
+                >> $imf_filename
+    done < $omni_filename
+
+    #set the permissions to these files as only read for archiving purposes
+    chmod 0455 $imf_filename
+    debug_log "chmod 0455 $imf_filename"
+    chmod 0455 $omni_filename
+    debug_log "chmod 0455 $omni_filename"
+
+    #store in seperate directory if the path was set
+    if [ ! -z $omni_path ]
     then
-        rm -f omni_${1}.txt  #should I delete the orginal as well?
-        echo "Warning: there was no good data in the Omni file"
-        return 1;
+        cp -u $imf_filename  $omni_path
+        cp -u $omni_filename $omni_path
+ 
+        debug "cp -u $imf_filename  $omni_path"
+        debug "cp -u $omni_filename $omni_path"       
+    
     fi
 
-    return 0;
+    #If there was no good data then delete the file
+    if [ $imf_data_counter -eq $bad_imf_data_counter ]
+    then
+        rm -f $imf_filename  #should I delete the orginal as well?
+        debug_log "rm -f $imf_filename"
+        echo "Warning: there was no good data in the Omni file"
+        debug_log "Warning: there was no good data in the Omni file"
+
+        return $ERRVALUE;
+    fi
+
+    return $SUCCESS;
 }
 
 
@@ -351,28 +694,48 @@ function get_omni_file()
 #           MAIN CODE
 #--------------------------------------------------
 
+#check if any arguements were passed in
+if [ $# -eq 0 ]
+then
+
+    echo "Please provide options to mappot_fitacf, for more infomation on mappot_fitacf options:"
+    echo "  mappot_fitacf --help"
+    exit $ERRARG
+
+fi
+
 #getopt is a function that takes in the arguements to script and looks for '-' character
 #       to determine the option value
 #The standard for bash options is '-' is followed by a single character and 
 #'--' is followed by a word for better clarity. 
-pwd
 
-if [ $# -eq 0 ]
-then
-    echo "Please provide options to mappot_fitacf, for more infomation on mappot_fitacf options:"
-    echo "  mappot_fitacf --help"
-    exit -1
-fi
+options=`getopt -o hH:d:n:s:e:f:m:p:o:i:V:Dv -l help,hemi:,date:,numproc:,st:,et:,fitacfpath:,mappath:,plotpath:,omnipath:,imageextension:,debug,version,vb -- "$@"`
 
-
-options=`getopt -o hH:d:s:e:f:m:v -l help,hemi:,date:,st:,et:,path:,vb -- "$@"`
 if [ $? -ne 0 ]
 then 
+ 
     echo "Please provide options to mappot_fitacf, for more infomation on mappot_fitacf options:"
     echo "  mappot_fitacf --help"
-    exit -1
+    exit $ERRARG
+
 fi
 
+#
+#   Set default values
+#
+debug=0
+verbose=""
+image_extension="pdf"
+version="4.1"
+version_options=""
+
+fitacf_path=`pwd`
+map_path=""
+plot_path=`pwd`
+omni_path=""
+
+num_processors=`nproc`
+current_date=`date +"%Y%m%d"`
 
 
 eval set -- "$options"
@@ -386,41 +749,83 @@ do
             echo "  mappot_file [OPTIION] [OPTION INPUT]..."
             echo "example: mappot_file -hemi south -date 20130601"
             echo "Options:"
-            echo "  -H | --hemi <south or north>    Hemisphere you are looking at (required)"
-            echo "  -d | --date YYYYMMDD            The date you are interested in (required)"
-            echo "  -s | --st HH:MM                 start time for the mappotential plots (optional)"
-            echo "  -e | --et HH:MM                 end time for the mappotential plots (optional)"
-            echo "  -f | --fitacfpath               path to the fitacf data (optional)"
-            echo "  -m | --mappath                  path to where the covection maps will be stored based on hemisphere/year/month/day"
-            echo "  -o | --ominpath                 path to where the omini will be saved to" 
-            echo "  -v | --vb                       verbose (optional)"
-            echo "  -h | --help                     help menu on the various options"
+            echo "  -H | --hemi <south or north>            Hemisphere you are looking at (required)"
+            echo "  -d | --date YYYYMMDD                    The date you are interested in (required)"
+            echo "  -n | --numproc <# of processors>        The number of processors the script should use"
+            echo "  -s | --st HH:MM                         start time for the mappotential plots (optional)"
+            echo "  -e | --et HH:MM                         end time for the mappotential plots (optional)"
+            echo "  -f | --fitacfpath <absolute path>       path to the fitacf data (optional)"
+            echo "  -m | --mappath <absolute path>          path to where the covection maps will be stored based on hemisphere/year/month/day (optional)"
+            echo "  -o | --ominpath <absolute path>         path to where the omini will be saved to (optional)"
+            echo "  -p | --plotpath <absolute path>         path to where the plots will be saved. Note: the omni files will also be saved in this location (optional)"
+            echo "  -i | --imageextension <extension type>  the image extension you would like the plot files to be converted to. Default is pdf. (optional)"
+            echo "  -V | --version <rst version>            The assumed default version is 4.1 if using anything later than 4.1 please indicated it. (optional)"
+            echo "  -v | --vb                               verbose (optional)"
+            echo "  -D | --degbug                           sets the debuggin option for the script and stores all information in the logfile"
+            echo "  -h | --help                             help menu on the various options"
             echo "NOTE: if the start time and/or the end time is not provided then it will generate the mappotential plots for the whole day."
-            exit 0
+            exit $ERRARG
             ;;
-       -H | --hemi )
+        -H | --hemi )
             shift
             hemisphere=$1
             ;;
-       -d | --date )
+        -d | --date )
             shift
-            name=$1
+            filename=$1
             ;;
-       -s | --st )
+        -n | --numproc )
+            shift
+            if [ $1 -gt $num_processors ]
+            then
+                echo "Warning: your machine does not have $1, instead I will be using $num_processors"
+            else
+                num_processors=$1
+            fi
+            ;;
+        -s | --st )
             shift
             mappot_start_time=$1
             start_time_option="-st $1"
             ;;
-       -e | --et )
+        -e | --et )
             shift
             mappot_end_time=$1 
             end_time_option="-et $1"
             ;;
-       -p | --path )
+        -f | --fitacfpath )
             shift
             fitacf_path=$1
             ;;
-       -v | --vb )
+        -m | --mpapath )
+            shift 
+            map_path=$1
+            ;;
+        -o | --omnipath )
+            shift 
+            omin_path=$1
+            ;;
+        -p | --plotpath )
+            shift
+            plot_path=$1
+            ;;
+        -i | --imageexntension )
+            shift
+            image_extension=$1
+            ;;
+        -V | --version )
+            shift
+            if [ $1 -ne $version ]
+            then
+                $version=$1
+                $version_options="-new"
+            fi
+            ;;
+        -D | --debug )
+            debug=1
+            shift
+            ;;
+        -v | --vb )
             verbose="-vb"
             shift
             ;;
@@ -429,234 +834,151 @@ do
             break
             ;;
         \? )
-            echo "Invalid option: --$1" >&2
-            exit -1
+            echo "Error: Invalid option: --$1" >&2
+            exit $ERRARG
             ;;
         : )
-            echo "Option --$1 requires an arguement." >&2
-            echo "Please look at mappot_file -help for option information"
-            exit 0
+            echo "Error: Option --$1 requires an arguement." >&2
+            echo "Please look at mappot_file --help for option information" >&2
+            exit $ERRARG
             ;;
     esac #<---- this is cute syntax 
     shift
 done
 
-if [ -z $fitacf_path ]
+debug_log "filename=$filename"
+debug_log "hemispher=$hemisphere"
+
+debug_log "debug=$debug"
+debug_log "verbose=$verbose"
+debug_log "image_extension=$image_extension"
+debug_log "version=$version"
+debug_log "version_options=$version_options"
+debug_log "fitacf_path=$fitacf_path"
+debug_log "map_path=$map_path"
+debug_log "plot_path=$plot_path"
+debug_log "omni_path=$omni_path"
+debug_log "num_processors=$num_processors"
+debug_log "current_date=$current_date"
+
+
+#required options! 
+if [ -z "$filename" ] || [ -z "$hemisphere" ];
 then
-    fitacf_path=`pwd`
+
+    echo "Error: The date of the fitacf date must be given as well as the hemisphere"
+    echo "Please use mappot_file --help for more information"
+    exit $ERRARG
+
 fi
+
 
 #sets pipefail to return the last most pipe command that exited
 #with a non-zero return value 
 set -o pipefail
+debug_log "set -o pipefail"
 
-if ! ls ${fitacf_path}/${name}.* 1> /dev/null 2>&1;
-then
-    echo "Error: There are no data files for this given date $name"
-    exit 2;
-fi
+update_paths
+debug_log "fitacf_path=$fitacf_path"
+debug_log "map_path=$map_path"
+debug_log "plot_path=$plot_path"
+debug_log "omni_path=$omni_path"
+debug_log "imf_filename=$imf_filename"
+debug_log "omni_filename=$omni_filename"
 
 
-#Reads in the data file extensions 
-if [ "$hemisphere" == "south" ]
-then
-    # -f : check for the existance of a file
-    # !  : Negation
-    if [ ! -f "${MAPPOTEXTENSIONSPATH}/south_extensions" ]
-    then 
-        echo "Error: south_extensions file is missing"
-        echo "       You can download it off the github page: https://github.com/SuperDARNCanada/mapping"
-        echo "       Please make sure the MAPPOTEXTENSIONSPATH is set correctly "
-        exit -1;
-    else
-        hemisphere_option="-sh"
-        #Reads a file into an array 
-        readarray data_extensions < "${MAPPOTEXTENSIONSPATH}/south_extensions"
-    fi
-elif [ "$hemisphere" == "north" ]
-then
-    if [ ! -f "${MAPPOTEXTENSIONSPATH}/north_extensions" ]
-    then 
-        echo "Error: north_extensions file is missing"
-        echo "       You can download it off the github page: https://github.com/SuperDARNCanada/mapping"
-        echo "       Please make sure the MAPPOTEXTENSIONSPATH is set correctly "
-        exit -1;
-    else
-        hemisphere_option=""
-        readarray data_extensions < "${MAPPOTEXTENSIONSPATH}/north_extensions"
-    fi
-else
-    echo "Error: $hemisphere is not an option for the -hemi option, please either use south or north " >&2
-    exit -1;
-fi
+get_hemisphere_extensions
+debug_log "radar_extensions=$radar_extensions"
 
-if [ ! -d "${name}_${hemisphere}" ]
-then
-    mkdir ${name}_${hemisphere}
-fi
+cd $plot_path
+error_check $? "cd" $ERRCMD
+debug_log "cd $plot_path"
 
-cd ${name}_${hemisphere} 
-error_check $? "cd" -1 
-
-#counter is used to determine how many grid files are created
-counter=0
-
-#@ : mean give me everything! 
-for data_extension in "${data_extensions[@]}"
+#@ : means give me everything! 
+for radar in "${radar_extensions[@]}"
 do
-    file_name=`tr -d " " <<< ${name}.${data_extension}`
-    error_check $? "tr" -1
-
-    #if the data does not exist then check for gz file
-    #extract the gz file; otherwise throw a warning that the file
-    #does not exist
-    if [ -z "$fitacf_path" ]
-    then
-        fitacf_path=".."
-    fi
-
-    if [ ! -f "${fitacf_path}/${file_name}" ]
-    then
-           
-        if [ -f "${fitacf_path}/${file_name}.gz"  ]
-        then 
-           gzip -d ${fitacf_path}/${file_name}.gz 2>&1; 
-           error_check $? "gzip" -1;
-           cp ${fitacf_path}/${file_name} .;
-           error_check $? "cp" -1;
-       else
-           echo "Warning: ${file_name}.gz does not exist, this file will not be included in the convection map";
-           continue;
-        fi
-                   
-    else
-        cp ../${file_name} .
-        error_check $? "cp" -1;
-    fi
-
-    # A case where we do not want to stop if the file is empty
-    warning_file_check $file_name
-    if [ $? -ne 0 ]
-        then
-            continue;
-    fi
-
-    #use make grid to make grid files :)
-    extension=`echo "$data_extension" | cut -d '.' -f2`
-    error_check $? "echo | cut" -1;
-
-    #
-    #TODO: put this code into a function, make_grid_error_checking? 
-    #
-
-    #make_grid options:
-    #   -i      : integration time <-- 2 minutes 
-    #   -minrng : exclude data from range gates lower than minrange
-    #   -fmax   : set the maximum allowed variation in frequency to be fmax Hz
-    #   -vemax  : exclude data with a velocity error greater than vemax m/s
-    #   -tl tlen: ignore scan flag in the fitacf file and use a fixed scan length tlen 
-    if [ "$verbose" == "-vb" ]
-    then
-        echo "make_grid $verbose -old -i $INTEGRATIONTIME $start_time_option $end_time_option -minrng $MINIMUMRANGE -fmax $FMAX -vemax $VEMAX $file_name > ${name}.${extension}.grid"
-    fi
-
-    #dmapdump is an rst function that pasrses the binary fitacf file to a human readable file
-    #parse the fitacf file to find scan values of -1 
-    #For a few radar -1 is used to inidicate backward scanning however, rst does not handling this 
-    #value gracefully and the current fix is to set the option -tl
-    scan_flag_error=`dmapdump $file_name | grep -c '\"scan\" = -1'`
-    if [ $scan_flag_error -ne 0 ]
-    then
-        scan_flag_options="-tl 60" # currently using 60 because of new radar scan times
-        #this magic number does not seem to have a huge affect on the data however, it is not good practice to 
-        #use magic numbers without meaning :(
-    else
-        scan_flag_options=""
-    fi
-
-    channelA=`dmapdump $file_name | grep -c '\"channel\" = 1'`
-    channelB=`dmapdump $file_name | grep -c '\"channel\" = 2'`
-
-    if [ $channelA -gt 0 ] && [ $channelB -gt 0 ];
-    then
-        make_grid $verbose -xtd  -cn A $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -fmax $FMAX -vemax $VEMAX $file_name > ${name}.${extension}.A.grid
-        warning_check $? "make grid" 
-        warning_file_check ${name}.${extension}.A.grid
-        warning_return_value=$?
-
-        make_grid $verbose -xtd -cn B $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -fmax $FMAX -vemax $VEMAX $file_name > ${name}.${extension}.B.grid
-        warning_check $? "make grid" 
-        warning_file_check ${name}.${extension}.B.grid
-        if [ $? -ne 0 ]
-        then
-             warning_return_value=$?
-        fi
-
-   elif [ $channelA -gt 0 ]
-    then 
-        make_grid $verbose -xtd -cn A $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -fmax $FMAX -vemax $VEMAX $file_name > ${name}.${extension}.A.grid
-        warning_check $? "make grid" 
-        warning_file_check ${name}.${extension}.A.grid
-        warning_return_value=$?
-
-   elif [ $channelB -gt 0 ]
-    then
-        make_grid $verbose -xtd -cn B $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -fmax $FMAX -vemax $VEMAX $file_name > ${name}.${extension}.B.grid
-        warning_check $? "make grid" 
-        warning_file_check ${name}.${extension}.B.grid
-        warning_return_value=$?
-
-    else
-        make_grid $verbose -xtd $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -fmax $FMAX -vemax $VEMAX $file_name > ${name}.${extension}.grid
-        warning_check $? "make grid" 
-        warning_file_check ${name}.${extension}.grid
-        warning_return_value=$?
-    fi
+    fitacf_filename=`tr -d " " <<< ${filename}.${radar}`
+    error_check $? "tr" $ERRCMD
+    debug_log "fitacf_filename=$fitacf_filename"
     
-    if [ $warning_return_value -eq 0 ]
-    then
-        counter=$((counter+1))
-    fi 
+    fitacf_to_grid $fitacf_filename &
 
 done
+wait #<---- Tells the parent process to wait for its children :) 
 
-if [ $counter -eq 0 ]
+if ! ls ${filename}.*.grid 1> /dev/null 2>&1;
 then
-    echo "Error: No grid files were generated for the $hemisphere hemisphere, please make sure there is data files for the date: $name"
-    exit 2;
+    echo "Error: There were no grid files created, please make sure the data files are correct"
+    exit $ERRFILENOTFOUND;
 fi
 
-combine_grid $verbose ${name}.*.grid > ${name}.grd
-error_check $? "combine grid" 5
-file_check ${name}.grd
+debug_log "combine_grid $version_options $verbose ${filename}.*.grid > ${filename}.grd"
+combine_grid $version_options $verbose ${filename}.*.grid > ${filename}.grd
+error_check $? "combine grid" $ERRRST
+file_check ${filename}.grd
+
 
 #map_grd options:
 # -l   : set the lower latitude boundary to latmin <--- 50?
 # -sh  : south hemisphere data <-- determined by user input
-map_grd $verbose $hemisphere_option -l 50 ${name}.grd > ${name}.empty.map
-error_check $? "map grid" 5
-file_check ${name}.empty.map
+# Versions later than 4.1
+# -new : New file style
+
+debug_log "map_grd  $version_options $verbose $hemisphere_option -l 50 ${filename}.grd > ${filename}.empty.map"
+map_grd  $version_options $verbose $hemisphere_option -l 50 ${filename}.grd > ${filename}.empty.map
+error_check $? "map grid" $ERRRST
+file_check ${filename}.empty.map
+
+debug_log "map_addhmb  $version_options $verbose ${filename}.empty.map > ${filename}.hmb.map"
+map_addhmb  $version_options $verbose ${filename}.empty.map > ${filename}.hmb.map
+error_check $? "map addhmb" $ERRRST
+file_check ${filename}.hmb.map
 
 
-map_addhmb $verbose $hemisphere_option ${name}.empty.map > ${name}.hmb.map
-error_check $? "map addhmb" 5
-file_check ${name}.hmb.map
-
-if [ ! -f omni_${name}.txt ]
+if [ ! -f $imf_filename ]
 then 
-    get_omni_file $name 
+    get_omni_file $filename $omni_path
     omni_returnvalue=$?
+    debug_log "omni_returnvalue=$omni_returnvalue"
+else 
+
+    omni_returnvalue=0
+    debug_log "omni_returnvalue=$omni_returnvalue"
+    #Gets the date of the last modification to the data file to cross check if our file is up to date
+    omni_update_time=`curl -sI ftp://spdf.gsfc.nasa.gov/pub/data/omni/high_res_omni/omni_min2017.asc | grep Last-Modified | sed 's/Last-Modified: //'`
+    error_check $? "curl | grep modified time | sed" $ERRCMD
+    debug_log "omni_update_time=$omni_update_time"
+    
+    epoch_omni_update_time=`date +"%s" -d "$omni_update_time"`
+    error_check $? "date omni_update_time" $ERRCMD
+    debug_log "epoch_omni_update_time=$epoch_omni_update_time"
+    
+    omni_file_modification_date=`date +"%s" -r $imf_filename`
+    error_check $? "date $imf_filename" $ERRCMD
+    debug_log "omni_file_modification_date=$omni_file_modification_date"
+
+    #check if the omni file on the website has been updated and different from our current file
+    if [ $epoch_omni_update_time -gt $omni_file_modification_date ]
+    then
+        #if so get a the latest file
+        get_omni_file $filename $omni_path
+        omni_returnvalue=$? 
+        debug_log "omni_returnvalue=$omni_returnvalue"
+    fi
 fi
 
-if [ -s omni_${name}.txt ]
+
+if [ -s $imf_filename ] && [ $omni_returnvalue -eq $SUCCESS ]; 
 then
     
     # map_addimf options:
     # -d  : delay time, format hh:mm
     # -if : read the IMF data from the ASCII text file "imfname"
-    map_addimf $verbose -d 00:10 -if omni_${name}.txt ${name}.hmb.map > ${name}.imf.map
+
+    debug_log "map_addimf $version_options $verbose -d 00:10 -if $imf_filename ${filename}.hmb.map > ${filename}.imf.map"
+    map_addimf $version_options $verbose -d 00:10 -if $imf_filename ${filename}.hmb.map > ${filename}.imf.map
     error_check $? "map addimf" 5
-    file_check ${name}.imf.map
+    file_check ${filename}.imf.map
 
     imf_extension="imf"
     imf_option="-imf"
@@ -667,22 +989,28 @@ else
     imf_option=""
 fi
 
+debug_log "imf_extension=$imf_extension"
+debug_log "imf_option=$imf_option"
+
 #map_addmodel options:
 # -o : set the order of fit to be "order" 
 # -d : set the doping level to dp. Possible values are low, medium, or high. 
-map_addmodel $verbose -o 8 -d l ${name}.${imf_extension}.map > ${name}.model.map
-error_check $? "map addmodel" 1
-file_check ${name}.model.map 
 
-map_fit $verbose ${name}.model.map > ${name}.map
-error_check $? "map fit" 1
-file_check ${name}.map
+debug_log "map_addmodel  $version_options $verbose -o 8 -d l ${filename}.${imf_extension}.map > ${filename}.model.map"
+map_addmodel  $version_options $verbose -o 8 -d l ${filename}.${imf_extension}.map > ${filename}.model.map
+error_check $? "map addmodel" $ERRRST
+file_check ${filename}.model.map 
 
+debug_log "map_fit  $version_options $verbose ${filename}.model.map > ${filename}.map"
+map_fit  $version_options $verbose ${filename}.model.map > ${filename}.map
+error_check $? "map fit" $ERRRST
+file_check ${filename}.map
 
-#
-#TODO: I wonder if it is possible to get the timstamps of each integration time and then name 
-#       each ps file after their times... might be nicer then some arbitrary number 
-#       -> map_plot will not do this but we can do this as an extra step if desired
+if [ ! -z $map_path ]
+then
+    debug_log "cp ${filename}.map $map_path/"
+    cp ${filename}.map $map_path/
+fi
 
 #map_plot options
 #   -ps     : output post script convection map files
@@ -703,30 +1031,49 @@ file_check ${name}.map
 #   -vkey   : vector key file, we use rainbow.key
 #
 
+#
+#TO DO: Import key file into map_plot, currently I have to copy the key file over which may not be a bad thing?
+#
+
 #-f : checks if the file exists
 if [ ! -f "${KEYFILEPATH}/$KEYFILE" ]
 then
     echo "Warning: Missing rainbow.key file, the following map files will be produced with a grey scale"
     key_option="-vkeyp"
 else
-    cp ${KEYFILEPATH}/$KEYFILE . 
+    cp -u ${KEYFILEPATH}/$KEYFILE .
+    debug_info "cp -u ${KEYFILEPATH}/$KEYFILE ." 
     key_option="-vkeyp -vkey $KEYFILE"
 fi
-echo $key_option
 
-map_plot -ps -mag $start_time_option $end_time_option -rotate -hmb -modn -fit -grd -ctr ${imf_option} -dn -extra -coast -vecp -pot -time ${key_option} ${name}.map 2>/dev/null
-error_check $? "map plot" 1
+debug_log "key_option=$key_option"
+
+debug_log "map_plot $version_options -ps -mag $start_time_option $end_time_option -rotate -hmb -modn -fit -grd -ctr $imf_option -dn -extra -coast -vecp -pot -time $key_option ${filename}.map 2>/dev/null"
+map_plot $version_options -ps -mag $start_time_option $end_time_option -rotate -hmb -modn -fit -grd -ctr $imf_option -dn -extra -coast -vecp -pot -time $key_option ${filename}.map 2>/dev/null
+error_check $? "map plot" $ERRRST
 
 
 #Convert ps_files to pdfs 
+proc_counter=1
+debug_log "proc_counter=$proc_counter"
 for ps_file in *.ps 
 do
-    if [ "$verbose" == "-vb" ]
+    #this only get the filename not the extension
+        ps_filename="${ps_file%.*}"
+        debug_log "ps_filename=$ps_filename"
+        debug_log "convert -density 200 $ps_file ${ps_filename}.$image_extension & "
+        convert -density 200 $ps_file ${ps_filename}.$image_extension & 
+        warning_check $? "convert $ps_file"
+    if [ $proc_counter -eq $num_processors ]
     then
-        echo $ps_file
+        wait
+        proc_counter=1
+        debug_log "proc_counter=$proc_counter"
+    else
+        proc_counter=$((proc_counter + 1))
+        debug_log "proc_counter=$proc_counter"
     fi
-    timeout 20 ps2pdf $ps_file
-    warning_check $? "ps2pdf $ps_file"
+            
 done
-
-cleanup $name
+debug_log "cleanup $filename"
+cleanup $filename
