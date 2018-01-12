@@ -5,7 +5,7 @@ Is a bash script that processes SuperDARN fitcon data into a convection map.
 ## Requirements 
 To run this scritpt you will need:
 
-* [RST] (https://github.com/SuperDARN/rst)
+* [RST](https://github.com/SuperDARN/rst)
 
 ## Instal Notes
 Instructions on how to get the script working:
@@ -33,7 +33,7 @@ Instructions on how to get the script working:
 The script does the following: 
 
 1. Reads in fitcon data for the associated radars for the given hemisphere
-2. Stores the files in the path <plot path>/fitcon date/hemisphere/current date/
+2. Stores the files in the path "plot path"/fitcon date/hemisphere/current date/
 
 ## How To Run
 
