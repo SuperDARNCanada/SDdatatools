@@ -245,9 +245,9 @@ function debug_log()
 {
     arguement_check $# 1 "debug log <message>"
     
-    if [ $degbug -ne 0 ]
+    if [ $debug -ne 0 ]
     then
-        printf '%s' $1 >> `pwd`/debug.log
+        printf '%s\n' $1 >> $current_path/debug.log
     fi
 
     return $SUCCESS
@@ -401,27 +401,27 @@ function fitacf_to_grid()
     #if the data does not exist then check for gz file
     #extract the gz file; otherwise throw a warning that the file
     #does not exist
-    if [ ! -f "${fitacf_path}/${fitacf_filename}" ]
+    if [ ! -f "$fitacf_path/$fitacf_filename" ] && [ ! -f "$plot_path/$fitacf_filename" ];
     then
            
-        if [ -f "${fitacf_path}/${fitacf_filename}.gz"  ]
+        if [ -f "$fitacf_path/${fitacf_filename}.gz"  ]
         then
-            debug_log "gzip -d ${fitacf_path}/${fitacf_filename}.gz"
-            gzip -d ${fitacf_path}/${fitacf_filename}.gz 2>&1; 
+	        debug_log "cp $fitacf_path/${fitacf_filename}.gz $plot_path"
+	        cp $fitacf_path/${fitacf_filename}.gz $plot_path 
+            debug_log "gzip -d $plot_path/${fitacf_filename}.gz"
+            gzip -d $plot_path/${fitacf_filename}.gz 2>&1;
             error_check $? "gzip" $ERRCMD;
-            
-            debug_log "cp  -u ${fitacf_path}/${fitacf_filename} $plot_path/;"
-            cp  -u ${fitacf_path}/${fitacf_filename} $plot_path/;
-            error_check $? "cp" $ERRCMD;
+
        else
            echo "Warning: ${fitacf_filename}.gz does not exist, this file will not be included in the convection map";
-            debug_log "Warning: ${fitacf_filename}.gz does not exist, this file will not be included in the convection map"
+           debug_log "Warning: ${fitacf_filename}.gz does not exist, this file will not be included in the convection map"
            return $ERRFILENOTFOUND
         fi
                    
-    else
-        debug_log "cp -u ${fitacf_path}/${fitacf_filename} $plot_path"
-        cp -u ${fitacf_path}/${fitacf_filename} $plot_path
+    elif [ ! -f "$plot_path/$fitacf_filename" ]
+    then
+        debug_log "cp $fitacf_path/$fitacf_filename $plot_path"
+        cp $fitacf_path/$fitacf_filename $plot_path
         error_check $? "cp" $ERRCMD;
     fi
 
@@ -484,18 +484,18 @@ function fitacf_to_grid()
     if [ $channelA -gt 0 ]
     then
 
-        debug_log "make_grid  $filesystem $verbose -xtd -cn A $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -fmax $FMAX -vemax $VEMAX $fitacf_filename > ${grid_filename}.A.grid"
+        debug_log "make_grid  $filesystem $verbose -xtd -cn A $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.A.grid"
 
-        make_grid  $filesystem $verbose -xtd -cn A $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -fmax $FMAX -vemax $VEMAX $fitacf_filename > ${grid_filename}.A.grid
+        make_grid  $filesystem $verbose -xtd -cn A $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.A.grid
         warning_check $? "make grid" 
         warning_file_check ${grid_filename}.A.grid
     fi
 
     if [ $channelB -gt 0 ]
     then
-        debug_log "make_grid  $filesystem $verbose -xtd -cn B $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -fmax $FMAX -vemax $VEMAX $fitacf_filename > ${grid_filename}.B.grid"
+        debug_log "make_grid  $filesystem $verbose -xtd -cn B $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.B.grid"
         
-        make_grid  $filesystem $verbose -xtd -cn B $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -fmax $FMAX -vemax $VEMAX $fitacf_filename > ${grid_filename}.B.grid
+        make_grid  $filesystem $verbose -xtd -cn B $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.B.grid
         warning_check $? "make grid" 
         warning_file_check ${grid_filename}.B.grid
     fi
@@ -591,7 +591,7 @@ function get_omni_file()
     #download the omni file for the given data
     #The original omni file is kept for debugging purposes :)        
     curl $corrected_url > $omni_filename
-    warning_check $? "curl $omni_filename" $ERRCMD
+    warning_check $? "curl $omni_filename"
     debug_log "corrected_url=$corrected_url"
 
     if [ "$verbose" == "-vb" ]
@@ -631,11 +631,9 @@ function get_omni_file()
         debug_log "by=$by"
         debug_log "bz=$bz"
 
-
-        imf_data_counter=$((imf_data_counter + 1))#<--- bash math :/
+        imf_data_counter=$((imf_data_counter + 1)) #<--- bash math :/
         debug_log "bad_imf_data_counter=$debug_imf_data_counter"
         debug_log "imf_data_counter=$imf_data_counter"
-
 
         # $bx%%.* <-- gets the whole number
         # bash has a funny way of comparing floats so this is easier... 
@@ -653,8 +651,7 @@ function get_omni_file()
         debug_log "month=$month"
         debug_log "day=$day"
 
-        printf "%s %s %s %d %d 00 %f %f %f\n" $year $month $day $hour $minute $bx $by $bz 
-                >> $imf_filename
+        printf "%s %s %s %d %d 00 %f %f %f\n" $year $month $day $hour $minute $bx $by $bz >> $imf_filename
     done < $omni_filename
 
     #set the permissions to these files as only read for archiving purposes
@@ -733,6 +730,7 @@ fitacf_path=`pwd`
 map_path=""
 plot_path=`pwd`
 omni_path=""
+current_path=`pwd`
 
 num_processors=`nproc`
 current_date=`date +"%Y%m%d"`
@@ -1042,7 +1040,7 @@ then
     key_option="-vkeyp"
 else
     cp -u ${KEYFILEPATH}/$KEYFILE .
-    debug_info "cp -u ${KEYFILEPATH}/$KEYFILE ." 
+    debug_log "cp -u ${KEYFILEPATH}/$KEYFILE ." 
     key_option="-vkeyp -vkey $KEYFILE"
 fi
 

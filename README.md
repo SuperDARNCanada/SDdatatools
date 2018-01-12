@@ -34,6 +34,14 @@ The script does the following:
 
 1. Reads in fitcon data for the associated radars for the given hemisphere
 2. Stores the files in the path "plot path"/fitcon date/hemisphere/current date/
+3. Obtains OMNI data from [OMNI Nasa](https://omniweb.sci.gsfc.nasa.gov/form/dx1.html)
+4. Error handling from rst, commands and Nasa website
+5. Error and Warning messages
+* Error messages are printed to stderr
+* Warning messages are printed to stdout. The messages will comment if files are no used in the process. 
+6. Omni file archiving with the *omnipath* option
+7. Debugging log with the *debug* option, documents all the variables and commands ran in the script for debugging purposes. 
+
 
 ## How To Run
 
@@ -70,7 +78,23 @@ To obtain information on the script:
         
 
 ### Examples:
+Running the script from a homedirectory on maxwell:
+            
+            :~> mappot_fitacf --date 20171005 --hemi north -i "jpeg" -f "/data/fitcon/2017/10"             
+            Warning: 20171005.C0.gbr.fitacf is empty, it will not be included in the convection map process
+            Warning: 20171005.C0.kod.fitacf.gz does not exist, this file will not be included in the convection map
+            Warning: 20171005.C0.ksr.fitacf.gz does not exist, this file will not be included in the convection map
+            Warning: 20171005.C0.wal.fitacf.gz does not exist, this file will not be included in the convection map
+              % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                             Dload  Upload   Total   Spent    Left  Speed
+            100  1323    0  1195  100   128    320     34  0:00:03  0:00:03 --:--:--   320
+              % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                             Dload  Upload   Total   Spent    Left  Speed
+            100 70500  100 70500    0     0   210k      0 --:--:-- --:--:-- --:--:--  210k
 
-            mappot_fitacf --date 20171005 --hemi north -i "jpeg" -f "/data/fitcon/2017/10" 
+This example processes the fitcon data for *Northern* hemisphere on the date: *2017-10-05*. 
+The fitcon path is specified by *-f* and *-i* is to specify the image extension for the convection maps. 
+
+
     
 
