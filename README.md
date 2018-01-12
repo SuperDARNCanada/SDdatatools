@@ -4,32 +4,36 @@ Is a bash script that processes SuperDARN fitcon data into a convection map.
 
 ## Requirements 
 To run this scritpt you will need:
-    * [RST] (https://github.com/SuperDARN/rst)
+
+* [RST] (https://github.com/SuperDARN/rst)
 
 ## Instal Notes
 Instructions on how to get the script working:
-    1. Clone the github repository:
+
+1. Clone the github repository:
         ```
             git clone https://github.com/SuperDARNCanada/mapping.git
         ```
-    2. Then run: 
+2. Then run: 
         
         source install.sh
         
-    * If you don't want to run this command each time you reopen a terminal then place these line in your **.bashrc**
+
+* If you don't want to run this command each time you reopen a terminal then place these line in your **.bashrc**
             
                 export PATH=<path to mappot_fitacf file>/:$PATH
                 export KEYFILE="rainbow.key"
                 export KEYFILEPATH=<path to the key file>
                 export MAPPOTEXTENSIONPATH=<path to the north_extensions and south_extensions files>
-**Make sure** you file the paths correctly.
+**Make sure** you file in the paths correctly.
 
 
 ## What to Expect
 
 The script does the following: 
-    1. Reads in fitcon data for the associated radars for the given hemisphere
-    2. Stores the files in the path <plot path>/fitcon date/hemisphere/current date/
+
+1. Reads in fitcon data for the associated radars for the given hemisphere
+2. Stores the files in the path <plot path>/fitcon date/hemisphere/current date/
 
 ## How To Run
 
