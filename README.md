@@ -2,12 +2,12 @@
 Is a bash script that processes SuperDARN fitcon data into a convection map.
 
 
-##Requirements 
+## Requirements 
 To run this scritpt you will need:
     * [RST] (https://github.com/SuperDARN/rst)
 
-##Instal Notes
-
+## Instal Notes
+Instructions on how to get the script working:
     1. Clone the github repository:
         ```
             git clone https://github.com/SuperDARNCanada/mapping.git
@@ -26,13 +26,13 @@ To run this scritpt you will need:
             *Make sure* you file the paths correctly.
 
 
-##What to Expect
+## What to Expect
 
 The script does the following: 
     1. Reads in fitcon data for the associated radars for the given hemisphere
     2. Stores the files in the path <plot path>/fitcon date/hemisphere/current date/
 
-##How To Run
+## How To Run
 
 After the isntallation, you can run the script from any folder. 
 Change to the directory where the fitcon data is, if you do not have write permissions there then inidicate the path where the fitcon is with the option *-fitacfpath*.
@@ -41,6 +41,7 @@ To run:
         ```
            mappot_fitacf --date YYYYMMDD --hemi north
         ```
+        To obtain information on the script:
         ```
            mappot_fitacf --help 
     
@@ -65,7 +66,7 @@ To run:
             NOTE: if the start time and/or the end time is not provided then it will generate the mappotential plots for the whole day.
         ```
 
-###Examples:
+### Examples:
 
         ```
             mappot_fitacf --date 20171005 --hemi north -i "jpeg" -f "/data/fitcon/2017/10" 
