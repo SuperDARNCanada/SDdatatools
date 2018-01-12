@@ -13,17 +13,16 @@ Instructions on how to get the script working:
             git clone https://github.com/SuperDARNCanada/mapping.git
         ```
     2. Then run: 
-        ```
-            source install.sh
-        ```
-        2.a) If you don't want to run this command each time you reopen a terminal then place these line in your *.bashrc*
-            ```
+        
+        source install.sh
+        
+    * If you don't want to run this command each time you reopen a terminal then place these line in your **.bashrc**
+            
                 export PATH=<path to mappot_fitacf file>/:$PATH
                 export KEYFILE="rainbow.key"
                 export KEYFILEPATH=<path to the key file>
                 export MAPPOTEXTENSIONPATH=<path to the north_extensions and south_extensions files>
-            ```
-            *Make sure* you file the paths correctly.
+**Make sure** you file the paths correctly.
 
 
 ## What to Expect
@@ -38,11 +37,11 @@ After the isntallation, you can run the script from any folder.
 Change to the directory where the fitcon data is, if you do not have write permissions there then inidicate the path where the fitcon is with the option *-fitacfpath*.
 
 To run: 
-        ```
-           mappot_fitacf --date YYYYMMDD --hemi north
-        ```
-        To obtain information on the script:
-        ```
+        
+        mappot_fitacf --date YYYYMMDD --hemi north
+        
+To obtain information on the script:
+           
            mappot_fitacf --help 
     
            Usage:
@@ -64,12 +63,10 @@ To run:
               -D | --degbug                           sets the debuggin option for the script and stores all information in the logfile
               -h | --help                             help menu on the various options
             NOTE: if the start time and/or the end time is not provided then it will generate the mappotential plots for the whole day.
-        ```
+        
 
 ### Examples:
 
-        ```
             mappot_fitacf --date 20171005 --hemi north -i "jpeg" -f "/data/fitcon/2017/10" 
-        ```
     
 
