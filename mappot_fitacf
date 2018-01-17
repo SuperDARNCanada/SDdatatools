@@ -455,51 +455,91 @@ function fitacf_to_grid()
     fi
     debug_log "scan_flag_option=$scan_flag_options"
    
-    #parse the fitacf files to see if they are just mono or have stereo channels
-    channelA=`dmapdump $fitacf_filename | grep -c '\"channel\" = 1'`
-    channelB=`dmapdump $fitacf_filename | grep -c '\"channel\" = 2'`
-    monoChannel=`dmapdump $fitacf_filename | grep -c '\"channel\" = 0'`
+    extension_a=`grep -c '\.a\.' <<< $fitacf_filename`
+    extension_b=`grep -c '\.b\.' <<< $fitacf_filename`
+    extension_c=`grep -c '\.c\.' <<< $fitacf_filename`
+    extension_d=`grep -c '\.d\.' <<< $fitacf_filename`
 
-    debug_log "channelA=$channelA"
-    debug_log "channelB=$channelB"
-    debug_log "monoChannel=$monoChannel"
-
-    #make_grid options:
-    #   -i      : integration time <-- 2 minutes 
-    #   -minrng : exclude data from range gates lower than minrange
-    #   -fmax   : set the maximum allowed variation in frequency to be fmax Hz
-    #   -vemax  : exclude data with a velocity error greater than vemax m/s
-    #   -tl tlen: ignore scan flag in the fitacf file and use a fixed scan length tlen 
-
-    #generate grid files based on channel values
-    if [ $monoChannel -gt 0 ]
+    #This is for the british radar that store channels in sepereate files however, do not change the channel values in the files. 
+    if [ "$hemisphere" = "south" ] && [ $extension_a -ne 0 ]
     then
-        debug_log "make_grid  $filesystem $verbose -xtd $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.grid"
+            debug_log "make_grid  $filesystem $verbose -xtd -cn_fix a $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.a.grid"
+            
+            make_grid  $filesystem $verbose -xtd -cn_fix a $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.a.grid
+            warning_check $? "make grid" 
+            warning_file_check ${grid_filename}.a.grid
 
-        make_grid  $filesystem $verbose -xtd $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.grid
-        warning_check $? "make grid" 
-        warning_file_check ${grid_filename}.grid
-    fi
-
-    if [ $channelA -gt 0 ]
+    elif [ "$hemisphere" = "south" ] && [ $extension_b -ne 0 ]
     then
-
-        debug_log "make_grid  $filesystem $verbose -xtd -cn A $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.A.grid"
-
-        make_grid  $filesystem $verbose -xtd -cn A $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.A.grid
-        warning_check $? "make grid" 
-        warning_file_check ${grid_filename}.A.grid
-    fi
-
-    if [ $channelB -gt 0 ]
+            debug_log "make_grid  $filesystem $verbose -xtd -cn_fix b $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.b.grid"
+            
+            make_grid  $filesystem $verbose -xtd -cn_fix b $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.b.grid
+            warning_check $? "make grid" 
+            warning_file_check ${grid_filename}.b.grid
+   
+    elif [ "$hemisphere" = "south" ] && [ $extension_c -ne 0 ]
     then
-        debug_log "make_grid  $filesystem $verbose -xtd -cn B $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.B.grid"
-        
-        make_grid  $filesystem $verbose -xtd -cn B $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.B.grid
-        warning_check $? "make grid" 
-        warning_file_check ${grid_filename}.B.grid
-    fi
+            debug_log "make_grid  $filesystem $verbose -xtd -cn_fix c $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.c.grid"
+            
+            make_grid  $filesystem $verbose -xtd -cn_fix c $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.c.grid
+            warning_check $? "make grid" 
+            warning_file_check ${grid_filename}.c.grid
+  
+    elif [ "$hemisphere" = "south" ] && [ $extension_d -ne 0 ]
+    then
+            debug_log "make_grid  $filesystem $verbose -xtd -cn_fix d $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.d.grid"
+            
+            make_grid  $filesystem $verbose -xtd -cn_fix d $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.d.grid
+            warning_check $? "make grid" 
+            warning_file_check ${grid_filename}.d.grid
 
+    else
+            
+        #parse the fitacf files to see if they are just mono or have stereo channels
+        channelA=`dmapdump $fitacf_filename | grep -c '\"channel\" = 1'`
+        channelB=`dmapdump $fitacf_filename | grep -c '\"channel\" = 2'`
+        monoChannel=`dmapdump $fitacf_filename | grep -c '\"channel\" = 0'`
+
+        debug_log "channelA=$channelA"
+        debug_log "channelB=$channelB"
+        debug_log "monoChannel=$monoChannel"
+
+        #make_grid options:
+        #   -i      : integration time <-- 2 minutes 
+        #   -minrng : exclude data from range gates lower than minrange
+        #   -fmax   : set the maximum allowed variation in frequency to be fmax Hz
+        #   -vemax  : exclude data with a velocity error greater than vemax m/s
+        #   -tl tlen: ignore scan flag in the fitacf file and use a fixed scan length tlen 
+
+        #generate grid files based on channel values
+        if [ $monoChannel -gt 0 ]
+        then
+            debug_log "make_grid  $filesystem $verbose -xtd $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.grid"
+
+            make_grid  $filesystem $verbose -xtd $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.grid
+            warning_check $? "make grid" 
+            warning_file_check ${grid_filename}.grid
+        fi
+
+        if [ $channelA -gt 0 ]
+        then
+
+            debug_log "make_grid  $filesystem $verbose -xtd -cn A $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.A.grid"
+
+            make_grid  $filesystem $verbose -xtd -cn A $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.A.grid
+            warning_check $? "make grid" 
+            warning_file_check ${grid_filename}.A.grid
+        fi
+
+        if [ $channelB -gt 0 ]
+        then
+            debug_log "make_grid  $filesystem $verbose -xtd -cn B $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.B.grid"
+            
+            make_grid  $filesystem $verbose -xtd -cn B $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.B.grid
+            warning_check $? "make grid" 
+            warning_file_check ${grid_filename}.B.grid
+        fi
+    fi
     return $SUCCESS;
 
 }
