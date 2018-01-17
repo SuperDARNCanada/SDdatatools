@@ -461,7 +461,7 @@ function fitacf_to_grid()
     extension_d=`grep -c '\.d\.' <<< $fitacf_filename`
 
     #This is for the british radar that store channels in sepereate files however, do not change the channel values in the files. 
-    if [ "$hemisphere" = "south" ] && [ $extension_a -ne 0 ]
+    if [ $extension_a -ne 0 ]
     then
             debug_log "make_grid  $filesystem $verbose -xtd -cn_fix a $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.a.grid"
             
@@ -469,7 +469,7 @@ function fitacf_to_grid()
             warning_check $? "make grid" 
             warning_file_check ${grid_filename}.a.grid
 
-    elif [ "$hemisphere" = "south" ] && [ $extension_b -ne 0 ]
+    elif [ $extension_b -ne 0 ]
     then
             debug_log "make_grid  $filesystem $verbose -xtd -cn_fix b $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.b.grid"
             
@@ -477,7 +477,7 @@ function fitacf_to_grid()
             warning_check $? "make grid" 
             warning_file_check ${grid_filename}.b.grid
    
-    elif [ "$hemisphere" = "south" ] && [ $extension_c -ne 0 ]
+    elif [ $extension_c -ne 0 ]
     then
             debug_log "make_grid  $filesystem $verbose -xtd -cn_fix c $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.c.grid"
             
@@ -485,7 +485,7 @@ function fitacf_to_grid()
             warning_check $? "make grid" 
             warning_file_check ${grid_filename}.c.grid
   
-    elif [ "$hemisphere" = "south" ] && [ $extension_d -ne 0 ]
+    elif [ $extension_d -ne 0 ]
     then
             debug_log "make_grid  $filesystem $verbose -xtd -cn_fix d $scan_flag_options -i $INTEGRATIONTIME -minrng $MINIMUMRANGE -vemax $VEMAX $fitacf_filename > ${grid_filename}.d.grid"
             
