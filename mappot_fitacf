@@ -807,7 +807,7 @@ do
             shift
             plot_path=$1
             ;;
-        -i | --imageexntension )
+        -i | --imageextension )
             shift
             image_extension=$1
             ;;

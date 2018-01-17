@@ -8,7 +8,7 @@ export PATH=`pwd`:$PATH
 #Assumes this is the default key file
 export KEYFILE="rainbow.key"
 
-if [ -f "$current_path/north_extensions" ] && [ -f "$current_path/south_extensions" ]
+if [ -f "./north_extensions" ] && [ -f "./south_extensions" ]
 then 
     export MAPPOTEXTENSIONSPATH=`pwd`
 else 
@@ -16,7 +16,7 @@ else
     echo "To set the variable use the command: export MAPPOTEXTENSIONSPATH=path/to/mappot/extensions/file"
 fi
 
-if [ -f "$current_path/rainbow.key" ]
+if [ -f "./rainbow.key" ]
 then
     export KEYFILEPATH=`pwd`
 else 
