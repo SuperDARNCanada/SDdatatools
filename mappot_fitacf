@@ -369,6 +369,57 @@ function update_paths()
 }
 
 #------------------------------------------------------
+#get_previous_and_next_fitacf_file:
+#          generate the appropriate grid files from the fitacf
+#               -> generates multiple grid files if the fitacf file stores various channels
+#               -> generates data on scan flags of -1 ... this needs to be fixed in rst
+# purpose: Encapsolate the grid generation process for parallization. 
+#
+# parameters: 
+#               $1 : fitacf filename
+# 
+#------------------------------------------------------
+
+function get_previous_and_next_fitacf_file() 
+{
+    local epoch_date
+    local prev_date
+    local next_date
+    local day_in_sec
+
+    day_in_sec=86400
+
+    epoch_date=`date +%s -d "$filename 0000"`
+    error_check $? "date $filename" $ERRCMD
+    debug_log "epoch_date=$epoch_date before delay"
+
+    prev_date=$((epoch_date - day_in_sec))
+    debug_log "prev_date=$prev_date"
+
+    next_date=$((epoch_date + day_in_sec))
+    debug_log "next_date=$next_date"
+
+    prev_month=`date -d @$epoch_date +"%m"`
+    error_check $? "date $epoch_date" $ERRCMD
+    debug_log "prev_mont=$prev_month"
+   
+    prev_year=`date -d @$epoch_date +"%Y"`
+    error_check $? "date $fepoch_date" $ERRCMD
+    debug_log "epoch_date=$epoch_date"
+
+    next_month=`date -d @$epoch_date +"%m"`
+    error_check $? "date $filename" $ERRCMD
+    debug_log "epoch_date=$epoch_date"
+
+    prev_year=`date -d @$epoch_date +"%Y"`
+    error_check $? "date $filename" $ERRCMD
+    debug_log "epoch_date=$epoch_date"
+
+
+
+}
+
+#------------------------------------------------------
 #fitacf_to_grid:
 #          generate the appropriate grid files from the fitacf
 #               -> generates multiple grid files if the fitacf file stores various channels
