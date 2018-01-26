@@ -180,18 +180,21 @@ function error_check(){
 #
 # parameters: 
 #       $1: exit value of the function
-#       $2: function name 
+#       $2: function name
+#       $3: return value of the type of error
 #------------------------------------------------------
 
 function warning_check(){
      
     # $# - number of arguements   
-    arguement_check $# 2 "warning_check <exit value of the function> <function name>"
+    arguement_check $# 3 "warning_check <exit value of the function> <function name> <error value>"
 
     if [ $1 -ne 0 ]
     then
         echo "Warning: $2 function exited with the following value: $1"
+        return $3
     fi
+    return $SUCCESS
 }
 
 
@@ -405,6 +408,19 @@ function get_previous_and_next_fitacf_file()
     local prev_date
     local next_date
     local day_in_sec
+    local prev_year
+    local prev_month
+    local next_year 
+    local next_month
+    local filename_extension
+    local fitacf_filename
+    local prevfile_check
+
+    fitacf_filename=$1
+    
+    fitacf_filename_extension=`sed -e 's/.*\(\.C0.*\)/\1' <<< $fitacf_filename`
+    error_check $? "sed $fitacf_filename" $ERRCMD
+    debug_log "fitacf_filename_extension=$fitacf_filename_extension"
 
     day_in_sec=86400
 
@@ -417,24 +433,63 @@ function get_previous_and_next_fitacf_file()
 
     next_date=$((epoch_date + day_in_sec))
     debug_log "next_date=$next_date"
+    
+    prev_filename=${prev_date}${fitacf_filename_extension}
+    next_filename=${next_date}${fitacf_filename_extension}
 
-    prev_month=`date -d @$epoch_date +"%m"`
-    error_check $? "date $epoch_date" $ERRCMD
-    debug_log "prev_mont=$prev_month"
+    prev_month=`date -d @$prev_date +"%m"`
+    error_check $? "date $prev_date M" $ERRCMD
+    debug_log "prev_month=$prev_month"
    
-    prev_year=`date -d @$epoch_date +"%Y"`
-    error_check $? "date $fepoch_date" $ERRCMD
-    debug_log "epoch_date=$epoch_date"
+    prev_year=`date -d @$prev_date +"%Y"`
+    error_check $? "date $preve_date Y" $ERRCMD
+    debug_log "prev_year=$prev_year"
 
-    next_month=`date -d @$epoch_date +"%m"`
-    error_check $? "date $filename" $ERRCMD
-    debug_log "epoch_date=$epoch_date"
+    next_month=`date -d @$next_date +"%m"`
+    error_check $? "date $next_date M" $ERRCMD
+    debug_log "next_month=$next_month"
 
-    prev_year=`date -d @$epoch_date +"%Y"`
-    error_check $? "date $filename" $ERRCMD
-    debug_log "epoch_date=$epoch_date"
+    next_year=`date -d @$next_date +"%Y"`
+    error_check $? "date $next_date Y" $ERRCMD
+    debug_log "next_year=$next_year"
 
+    # This is assuming the fitcon data is stored by year and month...
+    # I am not sure how to implement any other way unless I put in
+    # an user command option to set the filesystem setup :/ 
+    fitcon_dir=../../
 
+    if [ ! -f ./$prev_filename ]
+    then 
+        if [ -f $fitcon_dir/$prev_year/$prev_month/$prev_filename ]
+        then
+            warning_file_check $fitcon_dir/$prev_year/$prev_month/$prev_filename 
+            if [ $? -eq $SUCCESS ]
+            then
+                cp $fitcon_dir/$prev_year/$prev_month/$prev_filename .
+                prevfile_check=`warning_check $? "cp $fitcon_dir/$prev_year/$prev_month/$prev_filename ."`
+                debug_log "cp $fitcon_dir/$prev_year/$prev_month/$prev_filename ."
+            else 
+                prevfile_check=-1
+            fi
+
+        fi
+    fi
+       
+
+    if [ -f $fitcon_dir/$next_year/$next_month/$next_filename ]
+    then
+        cp $fitcon_dir/$next_year/$next_month/$next_filename .
+        warning_check $? "cp $next_filename"
+        if [ $? -ne 0 ]
+        then
+            echo "Warning: copying $next_filename did not succeed, it will not be including in the convection mapping process"
+        else
+            debug_log "cp $fitcon_dir/$next_year/$next_month/$next_filename ."
+        fi
+    else
+        echo "Warning: $next_filename was not found. Make sure our fitcon storage is organized as fitcondata/year/month."
+        echo "This file will not be included in the convection map process." 
+    fi
 
 }
 
