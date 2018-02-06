@@ -14,4 +14,10 @@ class RSTException(Exception):
         " error value of {} ".format(function_name,return_value)
         Exception.__init__(self,self.message)
 
+class RSTFileEmptyException(Exception):
+
+    def __init__(self,filename):
+        self.filename = filename
+        self.message = "RST file {} is empty".format(self.filename)
+        Exception.__init__(self,self.message)
 
