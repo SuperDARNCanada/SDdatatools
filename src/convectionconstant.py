@@ -14,11 +14,13 @@
 # method to keep seperation, readibility, and if the coder wants to
 # create errors on attempts to change the constants they can do it in the class.
 class RstConst():
-    pass
+    INTEGRATION_TIME = 120
+    MIN_RANGE = 2
+    VEMAX = 1000000
 
 
 class OmniConst():
-    pass
+    DELAY = 600
 
 """
  Southern Hemisphere Radar Extensions:
@@ -102,3 +104,4 @@ class ErrorCodes():
     ERROMNIBADDATA = 2
     ERRFILENOTFOUND = 3
     ERREMPTYFILE = 4
+    ERRRST = 5

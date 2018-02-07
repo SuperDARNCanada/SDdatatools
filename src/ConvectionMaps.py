@@ -184,8 +184,66 @@ class ConvectionMaps():
         else:
             grid_options = self.rst_options
 
+        if '.a.' in data_filename:
+            grid_options = grid_options + " -cn_fix a"
+        elif '.b.' in data_filename:
+            grid_options = grid_options + " -cn_fix a"
+        elif '.c.' in data_filename:
+            grid_options = grid_options + " -cn_fix c"
+        elif '.d.' in data_filename:
+            grid_options = grid_options + " -cn_fix d"
+        elif self.parameter['channel'] == 0:
+                grid_filename = "{date}.{abbrv}."
+                                "grid".format(date=self.parameter["date"])
+        elif self.parameter['channel'] == 1:
+                grid_filename = "{date}.{abbrv}.a."
+                                "grid".format(date=self.parameter["date"])
+                grid_options = grid_options + " -cn A"
+        elif self.parameter['channel'] == 2:
+                grid_filename = "{date}.{abbrv}.b."
+                                "grid".format(date=self.parameter["date"])
+                grid_options = grid_options + " -cn B"
+        else:
+            grid_filename = "{date}.{abbrv}."
+                                "grid".format(date=self.parameter["date"])
+            self.make_grid(grid_filename)
+            grid_filename = "{date}.{abbrv}.a."
+                                "grid".format(date=self.parameter["date"])
+            grid_options = grid_options + " -cn A"
+            self.make_grid(grid_filename)
+            grid_filename = "{date}.{abbrv}.b."
+                                "grid".format(date=self.parameter["date"])
+            grid_options = grid_options + " -cn B"
+            self.make_grid(grid_filename)
+            return 0
 
+        self.make_grid(grid_filename)
+        return 0
 
+    def make_grid(self,grid_filename):
+
+            make_grid_command = "make_grid {grid_options} -xtd"
+                                " -i {integration_time} -minrng {minrange}"
+                                " -vemax {max_velocity}"
+                                " > {filename}".format(itegration_time =
+                                                       RstConst.INTEGRATION_TIME,
+                                                       minrange =
+                                                       RstConst.MIN_RANGE,
+                                                       max_velocity =
+                                                       RstConst.VEMAX,
+                                                       filename = grid_filename)
+
+            return_value = call(make_grid_command.split())
+            try:
+                utils.is_file_not_empty(grid_filename)
+            except:
+                os.remove(grid_filename)
+                return ErrCodes.ERREMPTYFILE
+
+            if return_value != 0:
+                return ErrCodes.ERRRST
+
+            return 0
 
     # TODO: might be a util method
     def convert_fit_to_fitacf(self,filename):
@@ -268,6 +326,8 @@ class ConvectionMaps():
 
         for radar_ext in radar_list:
             self._generate_radar_grid_file(radar_ext)
+
+
 
     def generate_map_files(self):
         pass

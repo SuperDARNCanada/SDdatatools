@@ -29,9 +29,9 @@ def command_line_interface():
 def check_for_channel(channel_number=0):
     pass
 
-def is_file_empty(filename):
+def is_file_not_empty(filename):
     """
-    Returns True if file is empty
+    Returns True if file is nt empty
     """
     if os.path.getsize(filename) >
         return True
