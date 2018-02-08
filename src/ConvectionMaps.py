@@ -327,6 +327,13 @@ class ConvectionMaps():
         for radar_ext in radar_list:
             self._generate_radar_grid_file(radar_ext)
 
+        combine_grid_command = "combine_grid {options} {date}.*.grid >"
+                               "{date}.grd".format(options = self.rst_options,
+                                                   date = self.parameter['date'])
+        return_value = call(combine_grid_command.split)
+        if return_value != 0:
+            raise RSTException('combine_grid',return_value)
+        utils.is_file_not_empty("{date}.grd".format(self.parameter['date']))
 
 
     def generate_map_files(self):
