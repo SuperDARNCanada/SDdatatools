@@ -21,7 +21,7 @@ class OmniFileNotGeneratedWarning(Warning):
 
 class OmniFileNotFoundWarning(Warning):
 
-    def __init__(self,omni_filename):
+    def __init__(self, omni_filename):
         self.omni_filename = omni_filename
         self.message = "{} file found was"
         " not found. The omni data will not be used in"
@@ -31,12 +31,22 @@ class OmniFileNotFoundWarning(Warning):
 
 class OmniBadDataWarning(Warning):
 
-    def __init__(self,data):
+    def __init__(self, data):
         self.date = date
         self.message = "The IMF file for the date {} "
         " was not generated because there was no good data "
         " in the omni file".format(self.date)
         Warning.__init__(self, self.message)
 
+class ConverWarning(Warning):
+
+    def __init__(self, ps_file, extension):
+        self.ps_file = ps_file
+        self.extension = extension
+
+        self.message = "Warning: convert command could not convert "
+                       "{ps_filename} to {ext} format".format(ps_filename = ps_file,
+                                                              ext = extension)
+        Warning.__init__(self, self.message)
 
 

@@ -405,8 +405,40 @@ class ConvectionMaps():
 
 
     def generate_plot_files(self):
-        pass
+
+        # TODO: A better method of importing the key file and
+        # what to do when it is not provided
+        shutil.copy2("$KEYFILEPATH/rainbow.key",".")
+        key_option = "-vkey -vkey rainbow.key"
+        map_filename = "{date}.map".format(date = self.parameter['date'])
+        map_plot_command = "map_plot {options} -ps -mag"
+                           " -st {start_time} -et {end_time} -rotate -hmb -modn"
+                           " -fit -grd -ctr {imf} -dn -extra -cost -vecp "
+                           " -pot -time {key} {map_file}"
+                           " 2>/dev/null".format(options = self.rst_options,
+                                                 start_time =
+                                                 self.parameter['start-time'],
+                                                 end_time =
+                                                 self.parameter['end-time'],
+                                                 imf = imf_option,
+                                                 key = key_option,
+                                                 map_file = map_filename)
+        for ps_file in glob("*.ps"):
+            image_filename = ps_file.replace(".ps","")
+            convert_command = "convert -density 200 {ps_filename}"
+                              " {filename}.{ext}".format(ps_filename = ps_file,
+                                                         filename =
+                                                         image_filename,
+                                                         ext =
+                                                         self.parameter['image-extension'])
+            return_value = call(convert_command.split())
+            if return_value != 0:
+                warining.warn("",ConvertWarning(ps_file,
+                                                self.parameter['image-extension']))
+
 
     def cleanup(self):
 
+        os.remove("*.grid")
+        os.remove("*.*.map")
 
