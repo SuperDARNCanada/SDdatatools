@@ -5,7 +5,7 @@
 # exception.py
 # 2018-01-26
 
-from subprocess import check_output
+from subprocess import check_output, call
 import os
 from convectionMapExceptions import *
 
@@ -29,11 +29,15 @@ def command_line_interface():
 def check_for_channel(channel_number=0):
     pass
 
-def is_file_not_empty(filename):
+def check_rst_command(rst_command,filename):
     """
     Returns True if file is nt empty
     """
-    if os.path.getsize(filename) >
+    return_value = call(rst_command.split())
+    if return_value != 0:
+        raise RSTException(rst_command,return_value)
+
+    if os.path.getsize(filename) > 0:
         return True
     else
         raise RSTFileEmptyException(filename)

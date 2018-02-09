@@ -44,6 +44,11 @@ class Omni():
         if omni_filename:
             self.omni_filename = omni_filename
 
+        omni_file_path = "{}/{}".format(self.omni_path,self.omni_filename)
+
+        if not os.path.isfile(omni_file_path):
+            raise OmniFileNotFoundWarning(omni_filename)
+
         omni_date = datetime.strptime(self.date, "%Y%m%d0 %H%m")
         omni_year = omni_date.strftime("Y")
 
@@ -65,7 +70,6 @@ class Omni():
         omni_modified_date = datetime.strptime(omni_update_time,
                                                "%a, %d %b %Y %H:%M:%S %Z\r\n")
 
-        omni_file_path = "{}{}".format(self.omni_path,self.omni_filename)
         local_omni_modified_date = datetime.fromtimestamp(
                                  os.path.getmtime(omni_file_path))
 

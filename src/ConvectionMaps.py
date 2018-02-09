@@ -337,7 +337,72 @@ class ConvectionMaps():
 
 
     def generate_map_files(self):
-        pass
+
+        if self.parameter['hemisphere'] == "south":
+            map_grd_options = self.rst_options + " -sh"
+
+        empty_map_filename = "{date}.empty.map".format(date =
+                                                       self.parameter['date'])
+        map_grd_command = "map_grd {options} -l 50 {date}.grd > "
+                          "{filename}".format(options = self.rst_options,
+                                              date = self.parameter['date'],
+                                              filename = empty_map_filename)
+
+        utils.check_rst_command(map_grd_command, empty_map_filename)
+
+        hmb_map_filename = "{date}.hmb.map".format(self.parameter['date'])
+        map_addhmb_command = "map_addhmb {options} {empt_map} >"
+                             " hmb_map".format(options = self.rst_options,
+                                               empty_map = empty_map_filename,
+                                               hmb_map = hmb_map_filename)
+
+        utils.check_rst_command(map_addhmb_command, hmb_map_filename)
+
+        omni = Omni(self.parameter['date'],self.parameter['omnipath'])
+
+        return_value = 0
+        try:
+            if omni.check_for_updates():
+                return_value = omni.get_omni_file()
+        except:
+            return_value = omni.get_omni_file()
+
+        if omni.omnifile_to_IMFfile() == 0 and return_value == 0:
+            imf_map_filename = "{date}.imf.map"
+            map_addimf_command = "map_addimf {options} -d 00:10"
+                                 " -if {imf_filename} {hmb_map} >"
+                                 " {imf_map}".format(options = self.rst_options,
+                                                     imf_filename =
+                                                     omni.imf_filename,
+                                                     hmb_map = hmb_map_filename,
+                                                     imf_map = imf_map_filename)
+            utils.check_rst_command(map_addimf_command, imf_map_filename)
+            imf_option = " -imf"
+            input_model_file = imf_map_filename
+        else:
+            imf_option = ""
+            input_model_file = hmb_map_filename
+
+        map_model_file = "{date}.model.map"
+        map_addmodel_command = "map_addmodel {options} -o 8 -d l {input_map} >"
+                               " {model_map}".format(options = self.rst_options,
+                                                     input_map =
+                                                     input_model_file,
+                                                     model_map = map_model_file)
+        utils.check_rst_command(map_addmodel_command,map_model_file)
+
+        map_filename = "{date}.map".format(date = self.parameter['date'])
+        map_fit_command = "map_fit {options} {model_map} > "
+                          "map_file".format(options = self.rst_options,
+                                              model_map = map_model_file,
+                                              map_file = map_filename)
+        utils.check_rst_command(map_fit_command,map_filename)
+        try:
+            shutil.copy2(map_filename,self.parameter["mappath"])
+        except:
+            pass
+
+
 
     def generate_plot_files(self):
         pass
