@@ -38,7 +38,7 @@ class OmniBadDataWarning(Warning):
         " in the omni file".format(self.date)
         Warning.__init__(self, self.message)
 
-class ConverWarning(Warning):
+class ConvertWarning(Warning):
 
     def __init__(self, ps_file, extension):
         self.ps_file = ps_file
