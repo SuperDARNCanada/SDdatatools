@@ -5,19 +5,26 @@
 # exception.py
 # 2018-01-26
 
+
 class RSTException(Exception):
 
-    def __init__(self,function_name,return_value):
+    def __init__(self, function_name, return_value):
         self.function_name = function_name
         self.return_value = return_value
         self.message = "RST function {} failed with"
-        " error value of {} ".format(function_name,return_value)
-        Exception.__init__(self,self.message)
+        " error value of {} ".format(function_name, return_value)
+        Exception.__init__(self, self.message)
+
 
 class RSTFileEmptyException(Exception):
 
-    def __init__(self,filename):
+    def __init__(self, filename):
         self.filename = filename
         self.message = "RST file {} is empty".format(self.filename)
-        Exception.__init__(self,self.message)
+        Exception.__init__(self, self.message)
 
+class NoGridFilesException(Exception):
+
+    def __init__(self):
+        self.message = "No grid files were produced"
+        Exception.__init__(self, self.message)

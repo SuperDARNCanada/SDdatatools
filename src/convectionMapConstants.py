@@ -80,16 +80,25 @@ class SouthRadar():
 """
 
 class NorthRadar():
-    SINGLE_TO_ABBRV = {'g': 'gbr', 'k': 'kap', 't': 'sas', 'w': 'sto', 'f': 'han',
-                       'e': 'pyk', 'a': 'kod', 'b': 'pgr', 'c': 'ksr'}
-    SINGLE_EXTENSIONS = ['g', 'k', 't', 'w', 'f', 'e', 'a', 'b', 'c']
-    ABBRV_EXTENSIONS = ['.ade', '.adw', '.bks', '.cve', '.cvw', '.cly', '.fhe', '.fhw',
-                         '.gbr', '.han', '.hok', '.hkw', '.inv', '.kap', '.ksr', '.lyr',
-                         '.pyk', '.pgr', '.rkn', '.sas', '.sch', '.sto', '.wal']
-    CHANNEL_ONE_EXTENSIONS = ['kod.a', 'ade.a', 'adw.a']
-    CHANNEL_TWO_EXTENSIONS = ['kod.b', 'ade.b', 'adw.b']
-    CHANNEL_THREE_EXTENSIONS = ['kod.c']
-    CHANNEL_FOUR_EXTENSIONS =  ['kod.d']
+    SINGLE_TO_ABBRV = {'g': 'gbr', 'k': 'kap', 't': 'sas',
+                       'w': 'sto', 'f': 'han', 'e': 'pyk',
+                       'a': 'kod', 'b': 'pgr', 'c': 'ksr'}
+    SINGLE_EXTENSIONS = {'g': 'fit', 'k': 'fit', 't': 'fit', 'w': 'fit',
+                         'f': 'fit', 'e': 'fit', 'a': 'fit', 'b': 'fit',
+                         'c':'fit'}
+    ABBRV_EXTENSIONS = {'ade':'fitacf', 'adw':'fitacf', 'bks':'fitacf',
+                        'cve':'fitacf', 'cvw':'fitacf', 'cly':'fitacf',
+                        'fhe':'fitacf', 'fhw':'fitacf', 'gbr':'fitacf',
+                        'han':'fitacf', 'hok':'fitacf', 'hkw':'fitacf',
+                        'inv':'fitacf', 'kap':'fitacf', 'ksr':'fitacf',
+                        'lyr':'fitacf', 'pyk':'fitacf', 'pgr':'fitacf',
+                        'rkn':'fitacf', 'sas':'fitacf', 'sch':'fitacf',
+                        'sto':'fitacf', 'wal':'fitacf', 'ksr':'fitacf',
+                        'kod':'fitacf'}
+    CHANNEL_ONE_EXTENSIONS = {'ksr.a':'fitacf', 'ade.a':'fitacf', 'adw.a':'fitacf'}
+    CHANNEL_TWO_EXTENSIONS = {'ksr.b':'fitacf', 'ade.b':'fitacf', 'adw.b':'fitacf'}
+    CHANNEL_THREE_EXTENSIONS = {'kod.c':'fitacf'}
+    CHANNEL_FOUR_EXTENSIONS = {'kod.d':'fitacf'}
 
 class FileExtensions():
 
