@@ -15,20 +15,38 @@ from convectionMapConstants import ErrorCodes
 from warnings import warn
 import os
 import shutil
+import logging
 
 
 class Omni():
     """
+    The Omni class is used to check for omni file updates, get omni files from
+    https://omniweb.sci.gsfc.nasa.gov/
     """
 
     def __init__(self, date, omni_path):
 
-        self.date = date + " 00:00"
-        self.omni_path = omni_path
-        self.omni_filename = "omni_{}.txt".format(self.date)
-        self.imf_filename = "imf_{}.txt".format(self.date)
+        if not logging:
+            logfile = date + "_omni.log"
+            logging.basicConfig(logfile, level=logging.DEBUG)
+        else:
+            logging.info("*"*30)
+            logging.info("Omni Class")
+            logging.info("*"*30)
 
-        omni_start_datetime = datetime.strptime(self.date, "%Y%m%d %H%m") -\
+        self.date = date
+        self.omni_filename = "{}_omni.txt".format(self.date)
+        self.imf_filename = "{}_imf.txt".format(self.date)
+        self.omni_path = "{path}/{filename}".format(path=omni_path,
+                                                    filename=self.omni_filename)
+        self.imf_path = "{path}/{filename}".format(path=omni_path,
+                                                   filename=self.imf_filename)
+        logging.info("File names:")
+        logging.info(self.omni_filename)
+        logging.info(self.imf_filename)
+
+        self.start_time = date + " 00:00"
+        omni_start_datetime = datetime.strptime(self.start_time, "%Y%m%d %H:%M") -\
             timedelta(minutes=10)  # Omni time delay is ~10 minutes
         self.omni_start_time = omni_start_datetime.strftime("%Y%m%d%H")
 
@@ -41,26 +59,30 @@ class Omni():
         Returns true if the omni file on the website has been updated since
         the last download.
         """
+        logging.info("Checking for updats on the omni file")
         if omni_filename:
             self.omni_filename = omni_filename
 
-        omni_file_path = "{}/{}".format(self.omni_path, self.omni_filename)
+        omni_file_path = "{omnipath}/{omnifile}"\
+                "".format(omnipath=self.omni_path,
+                          omnifile=self.omni_filename)
 
         if not os.path.isfile(omni_file_path):
             raise OmniFileNotFoundWarning(omni_filename)
 
-        omni_date = datetime.strptime(self.date, "%Y%m%d0 %H%m")
-        omni_year = omni_date.strftime("Y")
+        omni_date = datetime.strptime(self.start_time, "%Y%m%d %H:%M")
+        omni_year = omni_date.strftime("%Y")
 
-        curl_command = "curl -sI "
-        "ftp://spdf.gsfc.nasa.gov/pub/data/omni/high_res_omni/omni_min{}.asc "
-        "| grep Last-Modified "
-        "| sed 's/Last-Modified: //'".format(omni_year)
+        curl_command = "curl -sI "\
+                "ftp://spdf.gsfc.nasa.gov/pub/data/omni/high_res_omni/omni_min{}.asc "\
+                "| grep Last-Modified "\
+                "| sed 's/Last-Modified: //'".format(omni_year)
+        logging.info(curl_command)
 
         try:
             omni_update_time = check_output(curl_command, shell=True)
         except CalledProcessError:
-            print("Warning: could not get the date the"
+            logging.warn("could not get the date the"\
                   " last time the file was updated")
             return False
 
@@ -68,11 +90,11 @@ class Omni():
         # from the website. example: 'Mon, 29 Jan 2018 14:56:10 GMT\r\n'
         omni_modified_date = datetime.strptime(omni_update_time,
                                                "%a, %d %b %Y %H:%M:%S %Z\r\n")
-
         local_omni_modified_date = datetime.fromtimestamp(
                                  os.path.getmtime(omni_file_path))
 
         modification_diff = local_omni_modified_date - omni_modified_date
+
         if modification_diff.total_seconds() > 0:
             return False
         else:
@@ -81,18 +103,18 @@ class Omni():
     def get_omni_file(self):
         """
         Downloads the omni file for the given date.
-
         """
-        curl_command = 'curl -d  '
-        '"activity=ftp&res=min&spacecraft=omni_min&'
-        'start_date={start_time}&end_date={date}23&vars=13&'
-        'vars=14&vars=17&vars=18&submit=Submit" '
-        'https://omniweb.sci.gsfc.nasa.gov/cgi/nx1.cgi'
-        ' | grep -oh http.*.lst\\"'
-        ' | grep -oh http.*.lst'.format(
-               start_date=self.omni_start_time,
-               date=self.date)
+        logging.info("get_omni_file")
+        curl_command = 'curl -d  '\
+                '"activity=ftp&res=min&spacecraft=omni_min&'\
+                'start_date={start_time}&end_date={date}23&vars=13&'\
+                'vars=14&vars=17&vars=18&submit=Submit" '\
+                'https://omniweb.sci.gsfc.nasa.gov/cgi/nx1.cgi'\
+                ' | grep -oh http.*.lst\\"'\
+                ' | grep -oh http.*.lst'.format(start_time=self.omni_start_time,
+                                                date=self.date)
 
+        logging.info(curl_command)
         # I am aware that using shell=True on a subprocess method is
         # a security risk, however, to get the curl command to work
         # I have to use shell=True
@@ -102,32 +124,32 @@ class Omni():
         try:
             omnifile_url = check_output(curl_command, shell=True)
         except CalledProcessError as e:
-            warn(e, UserWarning)
+            logging.warn(e)
             return ErrorCodes.ERROMNIFILE
 
         if "https" not in omnifile_url:
             omnifile_url = omnifile_url.replace('http', 'https')
 
-        download_file_command = "curl {link} >"
-        "{filename}".format(link=omnifile_url, filename=self.omni_filename)
+        download_file_command = "curl {link} >"\
+                "{filename}".format(link=omnifile_url,
+                                    filename=self.omni_filename)
 
         return_value = call(download_file_command, shell=True)
         if return_value != 0:
-            warn('', OmniFileNotGeneratedWarning(self.omni_filename,
+            logging.warn(OmniFileNotGeneratedWarning(self.omni_filename,
                                                  self.date))
             return ErrorCodes.ERROMNIFILE
 
         if (not os.path.isfile(self.omni_filename) and
            os.path.getsize(self.omni_filename) < 0):
-
-            warn('', OmniFileNotGeneratedWarning(self.omni_filename,
-                                                 self.date))
+            logging.warn( OmniFileNotGeneratedWarning(self.omni_filename,
+                                                      self.date))
             return ErrorCodes.ERROMNIFILE
 
         try:
             shutil.copy2(self.omni_filename, self.omni_path)
         except shutil.Error as err:
-            warn('Warning: {}'.format(err), UserWarning)
+            logging.warn(err)
         return 0  # 0 means success in this situation
 
     def omnifile_to_IMFfile(self, omni_filename=None):
@@ -135,6 +157,7 @@ class Omni():
         Parses the omni file into a IMF file format such that the RST code can
         use it the convection map process.
         """
+        logging.info("omnifile to IMFfile")
         if omni_filename:
             self.omni_filename = omni_filename
 
@@ -142,7 +165,7 @@ class Omni():
             with open(self.omni_filename, 'r') as omni_file:
                 omni_data_list = omni_file.read().splitlines()
         except (IOError, NameError):
-            warn('', OmniFileNotFoundWarning(self.omni_filename))
+            logging.warn(OmniFileNotFoundWarning(self.omni_filename))
             return ErrorCodes.ERROMNIFILE
 
         # TODO: implement a scheme to parse out solar wind when included in the omni data
@@ -164,25 +187,22 @@ class Omni():
             omni_month = omni_date.strftime("%m")
             omni_day = omni_date.strftime("%d")
 
-            imf_line = "{year} {month} {day} {hour} {minute} 00 "
-            "{Bx} {By} {Bz}\n".format(year=omni_year, month=omni_month,
-                                      day=omni_day, minute=omni_minute,
-                                      hour=omni_hour, Bx=omni_Bx,
-                                      By=omni_By, Bz=omni_Bz)
+            imf_line = "{year} {month} {day} {hour} {minute} 00 "\
+                    "{Bx} {By} {Bz}\n".format(year=omni_year, month=omni_month,
+                                              day=omni_day, minute=omni_minute,
+                                              hour=omni_hour, Bx=omni_Bx,
+                                              By=omni_By, Bz=omni_Bz)
             imf_file.write(imf_line)
-
             if float(omni_BM) > 999.0:
                 bad_data_counter = bad_data_counter + 1
-
         imf_file.close()
         if bad_data_counter == len(omni_data_list):
-            os.remove(self.imf_filename0)
-            warn('', OmniBadDataWarning(self.date))
+            os.remove(self.imf_filename)
+            logging.warn(OmniBadDataWarning(self.date))
             return ErrorCodes.ERROMNIBADDATA
 
         try:
             shutil.copy2(self.imf_filename, self.omni_path)
         except shutil.Error as err:
-            warn('Warning: {}'.format(err), UserWarning)
-
+            logging.warn(err)
         return 0  # 0 means success in this situation

@@ -11,8 +11,10 @@ class RSTException(Exception):
     def __init__(self, function_name, return_value):
         self.function_name = function_name
         self.return_value = return_value
-        self.message = "RST function {} failed with"
-        " error value of {} ".format(function_name, return_value)
+        self.message = "RST function {function} failed with"\
+                " error value of {returnvalue} "\
+                "".format(function=function_name,
+                          returnvalue=return_value)
         Exception.__init__(self, self.message)
 
 
