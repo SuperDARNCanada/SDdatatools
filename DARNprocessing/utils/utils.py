@@ -5,12 +5,13 @@
 # exception.py
 # 2018-01-26
 
-from convectionMapExceptions import RSTException, RSTFileEmptyException
-
-from subprocess import call
-from glob import glob
 import os
 import logging
+from subprocess import call
+from glob import glob
+
+from DARNprocessing.utils.convectionMapExceptions import (RSTException,
+                                                          RSTFileEmptyException)
 
 def file_exists(filename):
     """
