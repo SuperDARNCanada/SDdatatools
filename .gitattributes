@@ -1,0 +1,2 @@
+*.fitacf filter=lfs diff=lfs merge=lfs -text
+*.fitacf.gz filter=lfs diff=lfs merge=lfs -text
