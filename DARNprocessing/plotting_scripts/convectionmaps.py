@@ -124,6 +124,7 @@ class ConvectionMaps():
         self.radars_errors = "Radars files that raised errors:\n"
 
     # TODO: Should this be utils?
+    # TODO: Look for more possible options to add here for changing convection maps
     def arguement_parser(self, arguements):
         """
         Arguement parser - parses the arguement passed into the script into a
@@ -175,7 +176,7 @@ class ConvectionMaps():
 
         # This was going to be used in the case of a general script, however,
         # I am currently not sure which steps are needed for various data
-        # formats and in the future is might be easier for the user to
+        # formats and in the future it might be easier for the user to
         # to inherit this class and then modify as needed for the format.
         # TODO: decide whether this should be taken out.
         # parser.add_argument('-f','--data-format',type=str,
@@ -344,7 +345,7 @@ class ConvectionMaps():
                            "".format(data_path)
 
         grid_options = self.rst_options + ' -i ' +\
-                self.parameter['itegration_time']
+                str(self.parameter['integration_time'])
 
         # We need this try/except block because grep will return a non-zero
         # exit value even if there is no error, example) if there is no match
@@ -436,12 +437,11 @@ class ConvectionMaps():
 
     def make_grid(self, data_file, grid_file, grid_options=""):
         make_grid_command = "make_grid {gridoptions} -xtd"\
-                            " -i {integration_time} -minrng {minrange}"\
+                            " -i {integration_time} -minrng 2"\
                             " -vemax {max_velocity}"\
                             " {datafile} > {gridpath}"\
                             "".format(gridoptions=grid_options,
                                       integration_time=RstConst.INTEGRATION_TIME,
-                                      minrange=RstConst.MIN_RANGE,
                                       max_velocity=RstConst.VEMAX,
                                       datafile=data_file,
                                       gridpath=grid_file)
@@ -693,7 +693,7 @@ class ConvectionMaps():
                    "".format(plotpath=self.parameter['plotpath'],
                              map_file=map_filename)
 
-        map_fit_command = "map_fit {options} {plotpath}/{model_map} >"\
+        map_fit_command = "map_fit -ew No {options} {plotpath}/{model_map} >"\
                           " {plotpath}/{map_file}"\
                           "".format(options=self.rst_options,
                                     plotpath=self.parameter['plotpath'],
