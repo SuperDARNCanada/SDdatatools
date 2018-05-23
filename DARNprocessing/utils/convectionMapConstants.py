@@ -82,7 +82,24 @@ class SouthRadar():
  Schefferville (sch) - No longer operational (still used in the convection map process for older data)
 """
 
+# TODO: EXTENSIONS should be put some where else... RADAR constants?
+
 class NorthRadar():
+    EXTENSIONS = ['fit','fitacf','lmfit2']
+    RADAR_ABBRV = ['ade', 'adw', 'bks',
+                   'cve', 'cvw', 'cly',
+                   'fhe', 'fhw', 'gbr',
+                   'han', 'hok', 'hkw',
+                   'inv', 'kap', 'ksr',
+                   'lyr', 'pyk', 'pgr',
+                   'rkn', 'sas', 'sch',
+                   'sto', 'wal', 'ksr',
+                   'kod']
+    CHANNEL_ONE_ABBRV = ['ksr.a', 'ade.a', 'adw.a']
+    CHANNEL_TWO_ABBRV = ['ksr.b', 'ade.b', 'adw.b']
+    CHANNEL_THREE_ABBRV = ['kod.c']
+    CHANNEL_FOUR_ABBRV = ['kod.d']
+
     SINGLE_TO_ABBRV = {'g': 'gbr', 'k': 'kap', 't': 'sas',
                        'w': 'sto', 'f': 'han', 'e': 'pyk',
                        'a': 'kod', 'b': 'pgr', 'c': 'ksr'}

@@ -269,15 +269,19 @@ class ConvectionMaps():
         logging.info("Data path: " + self.parameter['datapath'])
 
     # TODO: implement parallel version
-    def _generate_radar_grid_file(self, radar_abbrv, radar_ext):
+    def _generate_radar_grid_file(self, radar_abbrv, data_path):
         """
         Helper function for generate_grid_files to generate a grid file(s) for
         a single radar extension. This can be used to parallelize the grid
         generation process.
         """
-        data_filename = "{date}{ext}".format(date=self.parameter['date'],
-                                              ext=radar_ext)
+        # TODO: delete it if glob works for getting any type of file name
+        # data_filename = "{date}{ext}".format(date=self.parameter['date'],
+        #                                      ext=radar_ext)
 
+        data_filename = os.path.basename(data_path)
+
+        # Standard naming convention for grid files
         grid_filename = "{date}.{abbrv}.grid".format(date=self.parameter['date'],
                                                      abbrv=radar_abbrv)
 
@@ -288,8 +292,9 @@ class ConvectionMaps():
 
         # if the data file is not in the current file then check in the
         # in the provided data folder.
-        if os.path.isfile(self.parameter['datapath']+'/'+data_filename):
-            shutil.copy2(self.parameter['datapath']+'/'+data_filename,
+        if os.path.isfile(data_path):
+            print('copy file over')
+            shutil.copy2(data_path,
                          self.parameter['plotpath']+'/'+data_filename)
         # TODO: Maybe let the user pick the compression type? is this always going to be consitant
         elif os.path.isfile(self.parameter['datapath']+'/'+data_filename+'.gz'):
@@ -484,6 +489,19 @@ class ConvectionMaps():
 
         return (fitacf_path, radar_abbrv)
 
+    #TODO: need to determine what wrappers should be where ... hmmm
+
+    # TODO: implement a method to generate fitacf files from rawacf files
+    def generate_fitacf_files(self):
+        pass
+
+    # TODO: implement a method to convert rawacf to lmfit using Ashton's code
+    def generate_lmfit_files(self):
+        pass
+
+    def concatinate_fitted_date(self):
+        pass
+
     def generate_grid_files(self):
         """
         Generates the grid files used in the map generation step.
@@ -539,15 +557,30 @@ class ConvectionMaps():
                 radar_list.update(NorthRadar.CHANNEL_THREE_EXTENSIONS)
                 radar_list.update(NorthRadar.CHANNEL_FOUR_EXTENSIONS)
 
+        # TODO: need to handle fit files...
         grid_file_counter = 0
-        for radar_abbrv, ext in radar_list.iteritems():
-            if ext == 'fit':
-                radar_ext = '00' + radar_abbrv + 'C.' + ext
-            else:
-                radar_ext = '.C0.' + radar_abbrv + '.' + ext
+        for ext in NorthRadar.EXTENSIONS:
+            for radar_abbrv in NorthRadar.RADAR_ABBRV:
 
-            if self._generate_radar_grid_file(radar_abbrv, radar_ext) != 0:
-                grid_file_counter += 1
+                file_pattern = "{datapath}/{date}*{abbrv}*.{ext}*".format(datapath=self.parameter['datapath'],
+                                                                         date=self.parameter['date'],
+                                                                         abbrv=radar_abbrv,
+                                                                         ext=ext)
+
+
+                for filename in glob(file_pattern):
+                    print(filename)
+                    if self._generate_radar_grid_file(radar_abbrv, filename) != 0:
+                        grid_file_counter += 1
+
+#        for radar_abbrv, ext in radar_list:
+#            if ext == 'fit':
+#                radar_ext = '00' + radar_abbrv + 'C.' + ext
+#            else:
+#                radar_ext = '.C0.' + radar_abbrv + '.' + ext
+#
+#            if self._generate_radar_grid_file(radar_abbrv, radar_ext) != 0:
+#                grid_file_counter += 1
 
         logging.info(self.radars_used)
         logging.info(self.radars_missing)
