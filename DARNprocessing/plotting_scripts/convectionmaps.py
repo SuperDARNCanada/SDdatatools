@@ -293,33 +293,35 @@ class ConvectionMaps():
         # if the data file is not in the current file then check in the
         # in the provided data folder.
         if os.path.isfile(data_path):
-            print('copy file over')
             shutil.copy2(data_path,
                          self.parameter['plotpath']+'/'+data_filename)
-        # TODO: Maybe let the user pick the compression type? is this always going to be consitant
-        elif os.path.isfile(self.parameter['datapath']+'/'+data_filename+'.gz'):
-            # we need to copy uncompress file in the plot path so we can write
-            # it or else we get permission errors for right only directories
-            gzip_command = "gzip -cd {datapath}/{datafile}.gz > "\
-                           "{plotpath}/{datafile}"\
-                           "".format(datapath=self.parameter['datapath'],
-                                     datafile=data_filename,
-                                     plotpath=self.parameter['plotpath'])
-            if call(gzip_command, shell=True) != 0:
-                logging.warn(FileNotFoundWarning(data_filename))
-                self.radars_errors += data_filename + '\n'
-                return ErrorCodes.ERRFILENOTFOUND
-        elif os.path.isfile(self.parameter['datapath']+'/'+data_filename+'.bz2'):
-            bzip2_command = "bzip2 -cd {datapath}/{datafile}.bz2 > "\
-                           "{plotpath}/{datafile}"\
-                           "".format(datapath=self.parameter['datapath'],
-                                     datafile=data_filename,
-                                     plotpath=self.parameter['plotpath'])
-            if call(bzip2_command,shell=True) != 0:
-                logging.warn(FileNotFoundWarning(data_filename))
-                self.radars_errors += data_filename + '\n'
-                return ErrorCodes.ERRFILENOTFOUND
-        elif not os.path.isfile(self.parameter['plotpath']+'/'+data_filename):
+            data_path = self.parameter['plotpath']+'/'+data_filename
+
+            # unzip any possible compression formats...
+            # TODO: replace this with a dictionary to key in for various compression types
+            #       and the dictionary lives in the constants file so that the user changes that file
+            #       not this file
+            if 'gz' in data_path:
+                gzip_command = "gzip -df {datapath}"\
+                               "".format(datapath=data_path,
+                                         plotpath=self.parameter['plotpath'])
+                if call(gzip_command, shell=True) != 0:
+                    logging.warn(FileNotFoundWarning(data_filename))
+                    self.radars_errors += data_filename + '\n'
+                    return ErrorCodes.ERRFILENOTFOUND
+                data_filename = data_filename.strip('.gz')
+
+            elif 'bz2' in data_path:
+                bzip2_command = "bzip2 -dfv {datapath}"\
+                                "".format(datapath=data_path,
+                                          plotpath=self.parameter['plotpath'])
+                if call(bzip2_command,shell=True) != 0:
+                    logging.warn(FileNotFoundWarning(data_filename))
+                    self.radars_errors += data_filename + '\n'
+                    return ErrorCodes.ERRFILENOTFOUND
+                data_filename = data_filename.strip('.bz2')
+
+        else:
             logging.warn("{datafile} was not found in the datapath: {datapath}"\
                          " or plotpath: {plotpath}, this file will not be used"\
                          "in the convection map process"\
@@ -327,18 +329,18 @@ class ConvectionMaps():
                                    datafile=data_filename,
                                    plotpath=self.parameter['plotpath']))
             self.radars_missing += data_filename + '\n'
-            return ErrorCodes.ERRFILENOTFOUND
+            message = "File {datafile} was not found, please make sure to provide data path using -d option and that the file exist in the folder"
+            raise OSError(message)
 
-        data_path = "{datapath}/{datafile}"\
-                    "".format(datapath=self.parameter['plotpath'],
-                              datafile=data_filename)
-
+        data_path = self.parameter['plotpath']+'/'+data_filename
 
         if os.path.getsize(data_path) == 0:
             logging.warn(EmptyDataFileWarning(data_filename))
             self.radars_errors += data_filename + '\n'
             return ErrorCodes.ERREMPTYFILE
 
+        # TODO: maybe remove fit checking and make it a requirement and write a wrapper to convert fit files.
+        #       this is a hassel to check :( and really we should just archive fit files and convert to the most current file type
         if 'C.fit' in data_filename:
             try:
                 data_path, radar_abbrv = self.convert_fit_to_fitacf(data_path)
@@ -569,7 +571,6 @@ class ConvectionMaps():
 
 
                 for filename in glob(file_pattern):
-                    print(filename)
                     if self._generate_radar_grid_file(radar_abbrv, filename) != 0:
                         grid_file_counter += 1
 
