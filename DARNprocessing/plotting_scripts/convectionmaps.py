@@ -24,7 +24,8 @@ from glob import glob
 from DARNprocessing.utils.utils import file_exists, check_rst_command
 
 from DARNprocessing.utils.convectionMapConstants import (ErrorCodes, NorthRadar,
-                                                         SouthRadar, RstConst)
+                                                         SouthRadar, RstConst,
+                                                         RadarConst)
 
 from DARNprocessing.utils.convectionMapWarnings import (ConvertWarning,
                                                         OmniFileNotFoundWarning,
@@ -293,8 +294,12 @@ class ConvectionMaps():
         # if the data file is not in the current file then check in the
         # in the provided data folder.
         if os.path.isfile(data_path):
-            shutil.copy2(data_path,
+            try:
+                shutil.copy2(data_path,
                          self.parameter['plotpath']+'/'+data_filename)
+            except shutil.Error as msg:
+                logging.warn(msg)
+
             data_path = self.parameter['plotpath']+'/'+data_filename
 
             # unzip any possible compression formats...
@@ -508,86 +513,32 @@ class ConvectionMaps():
         """
         Generates the grid files used in the map generation step.
         """
-        radar_list = {}
+        radar_abbrv = []
         if self.parameter['hemisphere'] == 'south':
-            if self.parameter['channel'] == 0:
-                radar_list.update(SouthRadar.SINGLE_EXTENSIONS)
-                radar_list.update(SouthRadar.ABBRV_EXTENSIONS)
-            elif self.parameter['channel'] == 1:
-                radar_list.update(SouthRadar.SINGLE_EXTENSIONS)
-                radar_list.update(SouthRadar.ABBRV_EXTENSIONS)
-                radar_list.update(SouthRadar.CHANNEL_ONE_EXTENSIONS)
-            elif self.parameter['channel'] == 2:
-                radar_list.update(SouthRadar.SINGLE_EXTENSIONS)
-                radar_list.update(SouthRadar.ABBRV_EXTENSIONS)
-                radar_list.update(SouthRadar.CHANNEL_TWO_EXTENSIONS)
-            elif self.parameter['channel'] == 3:
-                radar_list.update(SouthRadar.CHANNEL_THREE_EXTENSIONS)
-            elif self.parameter['channel'] == 4:
-                radar_list.update(SouthRadar.CHANNEL_FOUR_EXTENSIONS)
-            else:
-                radar_list.update(SouthRadar.SINGLE_EXTENSIONS)
-                radar_list.update(SouthRadar.ABBRV_EXTENSIONS)
-                radar_list.update(SouthRadar.CHANNEL_ONE_EXTENSIONS)
-                radar_list.update(SouthRadar.CHANNEL_TWO_EXTENSIONS)
-                radar_list.update(SouthRadar.CHANNEL_THREE_EXTENSIONS)
-                radar_list.update(SouthRadar.CHANNEL_FOUR_EXTENSIONS)
+            radar_abbrv = SouthRadar.RADAR_ABBRV
         elif self.parameter['canadian']:
-            radar_list.update(CanadianRadar.SINGLE_EXTENSIONS)
-            radar_list.update(CanadianRadar.ABBRV_EXTENSIONS)
+            radar_abbrv = CanadianRadar.RADAR_ABBRV
         else:
-            if self.parameter['channel'] == 0:
-                radar_list.update(NorthRadar.SINGLE_EXTENSIONS)
-                radar_list.update(NorthRadar.ABBRV_EXTENSIONS)
-            elif self.parameter['channel'] == 1:
-                radar_list.update(NorthRadar.SINGLE_EXTENSIONS)
-                radar_list.update(NorthRadar.ABBRV_EXTENSIONS)
-                radar_list.update(NorthRadar.CHANNEL_ONE_EXTENSIONS)
-            elif self.parameter['channel'] == 2:
-                radar_list.update(NorthRadar.SINGLE_EXTENSIONS)
-                NorthRadar.update(NorthRadar.ABBRV_EXTENSIONS)
-                NorthRadar.update(NorthRadar.CHANNEL_TWO_EXTENSIONS)
-            elif self.parameter['channel'] == 3:
-                radar_list.update(NorthRadar.CHANNEL_THREE_EXTENSIONS)
-            elif self.parameter['channel'] == 4:
-                radar_list.update(NorthRadar.CHANNEL_FOUR_EXTENSIONS)
-            else:
-                radar_list.update(NorthRadar.SINGLE_EXTENSIONS)
-                radar_list.update(NorthRadar.ABBRV_EXTENSIONS)
-                radar_list.update(NorthRadar.CHANNEL_ONE_EXTENSIONS)
-                radar_list.update(NorthRadar.CHANNEL_TWO_EXTENSIONS)
-                radar_list.update(NorthRadar.CHANNEL_THREE_EXTENSIONS)
-                radar_list.update(NorthRadar.CHANNEL_FOUR_EXTENSIONS)
+            radar_abbrv = NorthRadar.RADAR_ABBRV
 
         # TODO: need to handle fit files...
         grid_file_counter = 0
-        for ext in NorthRadar.EXTENSIONS:
-            for radar_abbrv in NorthRadar.RADAR_ABBRV:
-
-                file_pattern = "{datapath}/{date}*{abbrv}*.{ext}*".format(datapath=self.parameter['datapath'],
-                                                                         date=self.parameter['date'],
-                                                                         abbrv=radar_abbrv,
-                                                                         ext=ext)
-
-
+        for ext in RadarConst.FILE_TYPE:
+            for abbrv in radar_abbrv:
+                file_pattern = "{datapath}/{date}*{abbrv}*.{ext}*"\
+                               "".format(datapath=self.parameter['datapath'],
+                                         date=self.parameter['date'],
+                                         abbrv=abbrv,
+                                         ext=ext)
                 for filename in glob(file_pattern):
-                    if self._generate_radar_grid_file(radar_abbrv, filename) != 0:
+                    if self._generate_radar_grid_file(abbrv, filename) == 0:
                         grid_file_counter += 1
-
-#        for radar_abbrv, ext in radar_list:
-#            if ext == 'fit':
-#                radar_ext = '00' + radar_abbrv + 'C.' + ext
-#            else:
-#                radar_ext = '.C0.' + radar_abbrv + '.' + ext
-#
-#            if self._generate_radar_grid_file(radar_abbrv, radar_ext) != 0:
-#                grid_file_counter += 1
 
         logging.info(self.radars_used)
         logging.info(self.radars_missing)
         logging.info(self.radars_errors)
 
-        if grid_file_counter == len(radar_list):
+        if grid_file_counter == 0:
             logging.error(NoGridFilesException)
             raise NoGridFilesException
 
@@ -795,9 +746,9 @@ class ConvectionMaps():
             os.remove(f)
         for f in glob(path+'*.map'):
             os.remove(f)
-        for f in glob(path+'*.fit*'):
-            os.remove(f)
-
+        for ext in RadarConst.FILE_TYPE:
+            for f in glob('{path}*.{ext}*'.format(path=path,ext=ext)):
+                os.remove(f)
         os.remove(path + ".grd")
 
 

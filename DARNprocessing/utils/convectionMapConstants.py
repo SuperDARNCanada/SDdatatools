@@ -23,6 +23,21 @@ class OmniConst():
     DELAY = 600
 
 """
+    Supporting File types:
+        lmfit2
+        fitacf
+    Supporting compression types:
+        gz
+        bz2
+"""
+class RadarConst():
+    # Due to the legacy code of fit files and having various formats
+    # they are not included in file types for simplicity
+    # If you want to use fit files please convert to fitacf first
+    FILE_TYPE = ['lmfit2','fitacf']
+    COMPRESSION_TYPES = ['gz','bz2']
+
+"""
  Southern Hemisphere Radar Extensions:
  Halley (hal) (h)
  Syowa South (sys) (j)
@@ -44,11 +59,11 @@ class SouthRadar():
     SINGLE_TO_ABBRV = {'h': 'hal', 'j': 'sys', 'd': 'san', 'n': 'sye', 'p': 'ker', 'r': 'tig', 'u': 'unw'}
     SINGLE_EXTENSIONS = {'h': 'fit', 'j': 'fit', 'd': 'fit',
                          'n': 'fit', 'p': 'fit', 'r': 'fit', 'u': 'fit'}
-
-    ABBRV_EXTENSIONS = {'bpk': 'fitacf', 'dce': 'fitacf', 'fir': 'fitacf',
-                        'hal': 'fitacf', 'ker': 'fitacf', 'san': 'fitacf',
-                        'sye': 'fitacf', 'sys': 'fitacf', 'tig': 'fitacf',
-                        'unw': 'fitacf', 'zho': 'fitacf'}
+    RADAR_ABBRV = ['bpk', 'dce', 'fir',
+                   'hal', 'ker', 'san',
+                   'sye', 'sys', 'tig',
+                   'unw', 'zho', 'mcm',
+                   'sps']
     CHANNEL_ONE_EXTENSIONS = {'mcm.a': 'fitacf', 'sps.a': 'fitacf'}
     CHANNEL_TWO_EXTENSIONS = {'mcm.b': 'fitacf', 'sps.b': 'fitacf'}
     CHANNEL_THREE_EXTENSIONS = {'mcm.c': 'fitacf', 'sps.c': 'fitacf'}
@@ -85,7 +100,6 @@ class SouthRadar():
 # TODO: EXTENSIONS should be put some where else... RADAR constants?
 
 class NorthRadar():
-    EXTENSIONS = ['fit','fitacf','lmfit2']
     RADAR_ABBRV = ['ade', 'adw', 'bks',
                    'cve', 'cvw', 'cly',
                    'fhe', 'fhw', 'gbr',
@@ -106,15 +120,7 @@ class NorthRadar():
     SINGLE_EXTENSIONS = {'g': 'fit', 'k': 'fit', 't': 'fit', 'w': 'fit',
                          'f': 'fit', 'e': 'fit', 'a': 'fit', 'b': 'fit',
                          'c':'fit'}
-    ABBRV_EXTENSIONS = {'ade':'fitacf', 'adw':'fitacf', 'bks':'fitacf',
-                        'cve':'fitacf', 'cvw':'fitacf', 'cly':'fitacf',
-                        'fhe':'fitacf', 'fhw':'fitacf', 'gbr':'fitacf',
-                        'han':'fitacf', 'hok':'fitacf', 'hkw':'fitacf',
-                        'inv':'fitacf', 'kap':'fitacf', 'ksr':'fitacf',
-                        'lyr':'fitacf', 'pyk':'fitacf', 'pgr':'fitacf',
-                        'rkn':'fitacf', 'sas':'fitacf', 'sch':'fitacf',
-                        'sto':'fitacf', 'wal':'fitacf', 'ksr':'fitacf',
-                        'kod':'fitacf'}
+
     CHANNEL_ONE_EXTENSIONS = {'ksr.a':'fitacf', 'ade.a':'fitacf', 'adw.a':'fitacf'}
     CHANNEL_TWO_EXTENSIONS = {'ksr.b':'fitacf', 'ade.b':'fitacf', 'adw.b':'fitacf'}
     CHANNEL_THREE_EXTENSIONS = {'kod.c':'fitacf'}
@@ -125,11 +131,11 @@ class CandaianRadar():
                        'b': 'pgr'}
     SINGLE_EXTENSIONS = {'t': 'fit',
                          'b': 'fit'}
-    ABBRV_EXTENSIONS = {'cly':'fitacf',
-                        'inv':'fitacf',
-                        'pgr':'fitacf',
-                        'rkn':'fitacf',
-                        'sas':'fitacf'}
+    RADAR_ABBRV = {'cly',
+                   'inv',
+                   'pgr',
+                   'rkn',
+                   'sas'}
 
 class FileExtensions():
 
