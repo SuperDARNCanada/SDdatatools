@@ -12,7 +12,7 @@ class TestFitData(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        self.data_path = os.getcwd() + "/data/"
+        self.data_path = os.getcwd() + "/test_data/"
         self.omni_path = os.getcwd() + "/omni/"
         self.plot_path = os.getcwd() + "/plots/"
         self.map_path = os.getcwd() + "/maps/"
@@ -62,7 +62,7 @@ class TestSouthRadars(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        self.data_path = os.getcwd() + "/data/"
+        self.data_path = os.getcwd() + "/test_data/"
         self.omni_path = os.getcwd() + "/omni/"
         self.plot_path = os.getcwd() + "/plots/south/"
         self.map_path = os.getcwd() + "/maps/south/"
@@ -123,7 +123,7 @@ class TestNorthData(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        self.data_path = os.getcwd() + "/data/"
+        self.data_path = os.getcwd() + "/test_data/"
         self.omni_path = os.getcwd() + "/omni/"
         self.plot_path = os.getcwd() + "/plots/"
         self.map_path = os.getcwd() + "/maps/"
@@ -189,7 +189,7 @@ class TestNorthData(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        self.data_path = os.getcwd() + "/data/"
+        self.data_path = os.getcwd() + "/test_data/"
         self.omni_path = os.getcwd() + "/omni/"
         self.plot_path = os.getcwd() + "/plots/"
         self.map_path = os.getcwd() + "/maps/"
