@@ -678,7 +678,7 @@ class ConvectionMaps():
                    "".format(plotpath=self.parameter['plotpath'],
                              map_file=map_filename)
 
-        map_fit_command = "map_fit -ew No {options} {plotpath}/{model_map} >"\
+        map_fit_command = "map_fit {options} {plotpath}/{model_map} >"\
                           " {plotpath}/{map_file}"\
                           "".format(options=self.rst_options,
                                     plotpath=self.parameter['plotpath'],
