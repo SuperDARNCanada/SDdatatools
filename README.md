@@ -1,11 +1,14 @@
-SuperDARN map file and plot generation scripts
-===============================================
+SuperDARN data tools 
+=====================
 
-This python package provides modules that wrap around  RST functions for generating:
-* grid files
-* map files 
-* convection plots 
-and a module to download OMNI data to be included in the map file generation. 
+This python package provides modules that wrap around RST functions for users that wish to use python for scripting and for webapplication backends. 
+
+The following RST methods that are implemented: 
+* grid file generation
+* map file generation
+* convection plots generation using RST (future developement will include pydarn as a possible option)
+* OMNI file download for IMF data
+
 You can import the package by: 
 
     import DARNprocessing
@@ -16,8 +19,13 @@ For quick and easy use for generation of convection maps and plots, one can also
 
 ## Dependencies 
 The following packages need to be installed before being able to use the following scripts
-* RST - https://github.com/SuperDARN/rst
+* RST 4.1 and higher - https://github.com/SuperDARN/rst
 * python 2.7 or newer
+
+## Fitted data restrictions 
+Please be aware this library currently only works with fitacf (2.5 and 3.0), or lmfit2 data types. Fit files must be converted to either fitacf or lmfit2. 
+
+Future developement will include wrappers for this as well. 
 
 ## Installation 
 Running the following command to install the python package:

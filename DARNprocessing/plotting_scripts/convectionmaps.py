@@ -14,17 +14,18 @@ import shutil
 import os
 import argparse
 import re
-import errno
 
 from datetime import datetime
-from distutils.ccompiler import mkpath
 from subprocess import call, check_output, CalledProcessError
 from glob import glob
 
 from DARNprocessing.utils.utils import file_exists, check_rst_command
 
-from DARNprocessing.utils.convectionMapConstants import (ErrorCodes, NorthRadar,
-                                                         SouthRadar, RstConst,
+from DARNprocessing.utils.convectionMapConstants import (ErrorCodes,
+                                                         NorthRadar,
+                                                         SouthRadar,
+                                                         CanadianRadar,
+                                                         RstConst,
                                                          RadarConst)
 
 from DARNprocessing.utils.convectionMapWarnings import (ConvertWarning,
@@ -45,11 +46,16 @@ from DARNprocessing.IMF_scripts.omni import Omni
 
 class ConvectionMaps():
     """
-    Convection Maps is a class to contains wrapper methods to generate:
+    Convection Maps is a python class the wraps around the RST commands to generate the following files:
         - grid files
         - map files
         - convection potential plots
 
+    WARNING! Does take in fit files, please makes sure your data is one of the following types:
+            - fitacf
+            - lmfit2
+
+    If you are using fit files, please read fit2fitacf, generate_fitacf_files or generate_lmfit2_files.
     """
 
     def __init__(self, arguements=None, parameters=None):
@@ -57,17 +63,16 @@ class ConvectionMaps():
         Reads in user command line options and parses them to correct member
         fields.
 
-        Arguements:
-            arguements: sys.args from command line
-            parameters: Dictionary of the command line arguements (used mainly for general testing)
+        :param sys.args from command line
+        :param Dictionary of the command line arguements; used for testing and python scripts
                 key name: defualt value
+                -----------------------
                 'date': None,
                 'channel': 5,
                 'hemisphere': 'north',
                 'canadian': False,
                 'start_time': '00:00',
                 'end_time': 23:59,
-                'rst_version': 4.1,
                 'image_extension': 'pdf',
                 'integration_time': 120,
                 'datapath': self._current_path,
@@ -103,12 +108,9 @@ class ConvectionMaps():
                 raise ValueError("Date of the date was not passed in, please"
                                  "include in the parameters dictionary")
 
+        # the possible letter channels that a fit file name can contain
+        # that pertains to the stero channel value. Most used by alaskian radars.
         self.channel = ['', 'a', 'b', 'c', 'd']
-
-        if self.parameter['rst_version'] < 4.1:
-            self.rst_options = "-new "
-        else:
-            self.rst_options = ""
 
         # Logging information setup
         # TODO: give a defualt directory to store the files in?
@@ -286,7 +288,6 @@ class ConvectionMaps():
         grid_filename = "{date}.{abbrv}.grid".format(date=self.parameter['date'],
                                                      abbrv=radar_abbrv)
 
-
         grid_path = "{datapath}/{grid_file}"\
                     "".format(datapath=self.parameter['plotpath'],
                               grid_file=grid_filename)
@@ -296,7 +297,7 @@ class ConvectionMaps():
         if os.path.isfile(data_path):
             try:
                 shutil.copy2(data_path,
-                         self.parameter['plotpath']+'/'+data_filename)
+                             self.parameter['plotpath']+'/'+data_filename)
             except shutil.Error as msg:
                 logging.warn(msg)
 
@@ -320,21 +321,23 @@ class ConvectionMaps():
                 bzip2_command = "bzip2 -dfv {datapath}"\
                                 "".format(datapath=data_path,
                                           plotpath=self.parameter['plotpath'])
-                if call(bzip2_command,shell=True) != 0:
+                if call(bzip2_command, shell=True) != 0:
                     logging.warn(FileNotFoundWarning(data_filename))
                     self.radars_errors += data_filename + '\n'
                     return ErrorCodes.ERRFILENOTFOUND
                 data_filename = data_filename.strip('.bz2')
 
         else:
-            logging.warn("{datafile} was not found in the datapath: {datapath}"\
-                         " or plotpath: {plotpath}, this file will not be used"\
-                         "in the convection map process"\
+            logging.warn("{datafile} was not found in the datapath: {datapath}"
+                         " or plotpath: {plotpath}, this file will not be used"
+                         "in the convection map process"
                          "".format(datapath=self.parameter['datapath'],
                                    datafile=data_filename,
                                    plotpath=self.parameter['plotpath']))
             self.radars_missing += data_filename + '\n'
-            message = "File {datafile} was not found, please make sure to provide data path using -d option and that the file exist in the folder"
+            message = "File {datafile} was not found, please make sure to"\
+                      " provide data path using -d option and that the"\
+                      " file exist in the folder"
             raise OSError(message)
 
         data_path = self.parameter['plotpath']+'/'+data_filename
@@ -356,8 +359,8 @@ class ConvectionMaps():
         dmapdump_command = "dmapdump {} | grep -c '\"scan\" = -1'"\
                            "".format(data_path)
 
-        grid_options = self.rst_options + ' -i ' +\
-                str(self.parameter['integration_time'])
+        grid_options = self.rst_options + ' -i ' + \
+            str(self.parameter['integration_time'])
 
         # We need this try/except block because grep will return a non-zero
         # exit value even if there is no error, example) if there is no match
@@ -463,7 +466,7 @@ class ConvectionMaps():
             check_rst_command(make_grid_command, grid_file)
         except RSTException as err:
             logging.warn(err)
-            self.radars_errors += data_file+ '\n'
+            self.radars_errors += data_file + '\n'
         except RSTFileEmptyException as err:
             self.radars_errors += data_file + '\n'
             logging.warn(err)
@@ -496,7 +499,7 @@ class ConvectionMaps():
 
         return (fitacf_path, radar_abbrv)
 
-    #TODO: need to determine what wrappers should be where ... hmmm
+    # TODO: need to determine what wrappers should be where ... hmmm
 
     # TODO: implement a method to generate fitacf files from rawacf files
     def generate_fitacf_files(self):
@@ -613,11 +616,9 @@ class ConvectionMaps():
                 except IOError as err:
                     logging.exception(err)
                     pass
-                return_value = omni.get_omni_file()
         except OmniFileNotFoundWarning as warning_msg:
             logging.warn(warning_msg)
             update = True
-
 
         try:
             if update:
@@ -654,7 +655,7 @@ class ConvectionMaps():
         except (OmniFileNotGeneratedWarning,
                 OmniFileNotFoundWarning,
                 OmniBadDataWarning) \
-               as warning_msg:
+                as warning_msg:
             logging.warn(warning_msg)
             self._imf_option = ""
             input_model_file = hmb_map_filename
@@ -747,7 +748,7 @@ class ConvectionMaps():
         for f in glob(path+'*.map'):
             os.remove(f)
         for ext in RadarConst.FILE_TYPE:
-            for f in glob('{path}*.{ext}*'.format(path=path,ext=ext)):
+            for f in glob('{path}*.{ext}*'.format(path=path, ext=ext)):
                 os.remove(f)
         os.remove(path + ".grd")
 
@@ -755,7 +756,7 @@ class ConvectionMaps():
 if __name__ == '__main__':
     import sys
     convec = ConvectionMaps(sys.argv[1:], 201803)
-    #convec.setup_paths()
+    # convec.setup_paths()
     convec.generate_grid_files()
     convec.generate_map_files()
     convec.generate_RST_convection_maps()
