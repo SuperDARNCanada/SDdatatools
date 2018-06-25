@@ -90,6 +90,7 @@ class ConvectionMaps():
         else:
             self.parameter = {'date': None,
                               'channel': 5,
+                              'integration_time':120,
                               'hemisphere': 'north',
                               'start_time': '00:00',
                               'end_time': '23:59',
@@ -120,7 +121,8 @@ class ConvectionMaps():
                             level=logging.DEBUG)
         logging.info("Parameter list:" + str(self.parameter))
         self._generate_paths()
-
+        # TODO clean up rst options and make it a requirement to use only rst 4.0 and higher
+        self.rst_options = ""
         self.radars_used = "Radar files uses in the Convection Map process:\n"
         self.radars_missing = "Radar files missing"\
                               " (not used in the Convection Map process):\n"
@@ -235,6 +237,7 @@ class ConvectionMaps():
 
         self.parameter = parser.parse_args()
         self.parameter = vars(self.parameter)
+        print(self.parameter)
         if not os.path.exists(self.parameter['datapath']):
             raise PathDoesNotExistException(self.parameter['datapath'])
 
@@ -519,7 +522,7 @@ class ConvectionMaps():
         radar_abbrv = []
         if self.parameter['hemisphere'] == 'south':
             radar_abbrv = SouthRadar.RADAR_ABBRV
-        elif self.parameter['canadian']:
+        elif self.parameter['hemisphere'] == 'canadian':
             radar_abbrv = CanadianRadar.RADAR_ABBRV
         else:
             radar_abbrv = NorthRadar.RADAR_ABBRV

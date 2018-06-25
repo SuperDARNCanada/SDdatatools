@@ -126,7 +126,7 @@ class NorthRadar():
     CHANNEL_THREE_EXTENSIONS = {'kod.c':'fitacf'}
     CHANNEL_FOUR_EXTENSIONS = {'kod.d':'fitacf'}
 
-class CandaianRadar():
+class CanadianRadar():
     SINGLE_TO_ABBRV = {'t': 'sas',
                        'b': 'pgr'}
     SINGLE_EXTENSIONS = {'t': 'fit',
