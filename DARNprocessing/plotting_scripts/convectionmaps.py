@@ -546,7 +546,7 @@ class ConvectionMaps():
 
         if grid_file_counter == 0:
             logging.error(NoGridFilesException)
-            raise NoGridFilesException
+            raise NoGridFilesException(radar_abbrv)
 
         grd_filename = "{date}.grd".format(date=self.parameter['date'])
         grd_path = "{plotpath}/{grd_file}"\
