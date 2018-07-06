@@ -19,7 +19,9 @@ from datetime import datetime
 from subprocess import call, check_output, CalledProcessError
 from glob import glob
 
-from DARNprocessing.utils.utils import file_exists, check_rst_command
+from DARNprocessing.utils.utils import (file_exists,
+                                        check_rst_command,
+                                        flag_options)
 
 from DARNprocessing.utils.convectionMapConstants import (ErrorCodes,
                                                          NorthRadar,
@@ -138,106 +140,193 @@ class ConvectionMaps():
         ----------
         arguements - sys.args
         """
-        parser = argparse.ArgumentParser(prog='fitacf2convectionmap',
-                                         description='Converts fitacf files'
-                                                     ' to convection maps')
-        # required arguement
-        parser.add_argument('date', type=str,
-                            help='The date of the fitacf data.'
-                            ' Format: YYYYMMDD')
 
-        # RST options
-        parser.add_argument('-c', '--channel', type=str,
-                            choices=[0, 1, 2, 3, 4, 5], default='5',
-                            help='Select the channel number of data'
+
+        option_names = [('date'),
+                        ('-c','--channel'),
+                        ('-i','--integration-time'),
+                        ('-h','--hemisphere'),
+                        ('-s','--start-time'),
+                        ('-e','--end-time'),
+                        ('-x','--image-ext'),
+                        ('-l','--logfile'),
+                        ('-f','--data-format'),
+                        ('-d','--data-path'),
+                        ('-p','--plot-path'),
+                        ('-m','--map-path'),
+                        ('-k','--key-path'),
+                        ('-v','--verbose')]
+        option_settings = [{'type':str,
+                            'help':'The date of the fitacf data.'},
+                           {'type':int,
+                            'choices':[0, 1, 2, 3, 4, 5],
+                            'default':5,
+                            'help':'Select the channel number of data'
                             ' to use for the convection map process.'
-                            ' Default: 5 - use all channels')
-        parser.add_argument('--integration-time', type=int,
-                            default='120',
-                            help='Integration time between each plot in seconds.'
-                            ' Default: 120 - 2 minute convection plots')
-        parser.add_argument('--hemisphere', type=str,
-                            choices=['north', 'south'], default='north',
-                            help='The hemisphere you want to assimilate.'
-                            ' Default: north')
-        parser.add_argument('--canadian', action='store_true',
-                            help='Set to use only the canadian radards.')
-        parser.add_argument('--start-time', type=str,
-                            metavar='hh:mm', default='00:00',
-                            help='The start time at hh:mm of the fitacf data.'
-                            ' Default: 00:00')
-        parser.add_argument('--end-time', type=str,
-                            metavar='hh:mm', default='23:59',
-                            help='The end time at hh:mm of the fitacf data.'
-                            ' Default: 23:59')
-        parser.add_argument('--rst-version', type=float,
-                            metavar='N', default=4.1,
-                            help='The version number of RST that'
-                            ' you are using. Default: 4.1')
-        parser.add_argument('-i', '--image-extension', type=str,
-                            metavar='EXTENSION', default='pdf',
-                            help='The image format of convection maps.'
-                            ' Default: pdf')
-
-        # This was going to be used in the case of a general script, however,
-        # I am currently not sure which steps are needed for various data
-        # formats and in the future it might be easier for the user to
-        # to inherit this class and then modify as needed for the format.
-        # TODO: decide whether this should be taken out.
-        # parser.add_argument('-f','--data-format',type=str,
-        #                    choices=['fitacf','fit','fitred'],default='fitacf ',
-        #                    help='The data format to use for generating the'
-        #                    ' convection maps Default: fitacf')
-
-        # Path options
-        parser.add_argument('-l', '--logfile', type=str,
-                            metavar='PATH',
-                            default=self._current_path+'/ConvectionMaps.log',
-                            help='The absolute path to the log file'
+                            ' Default: 5 - use all channels'},
+                           {'type':int,
+                            'default':'120',
+                            'help':'Integration time between each plot in seconds.'
+                            ' Default: 120 - 2 minute convection plots'},
+                           {'type':str,
+                            'choices':['north', 'south','Canadian'],
+                            'default':'north',
+                            'help':'The hemisphere you want to assimilate.'
+                            ' Default: north'},
+                           {'type':str,
+                            'metavar':'hh:mm',
+                            'default':'00:00',
+                            'help':'The start time at hh:mm of the fitacf data.'
+                            ' Default: 00:00'},
+                           {'type':str,
+                            'metavar':'hh:mm',
+                            'default':'23:59',
+                            'help':'The end time at hh:mm of the fitacf data.'
+                            ' Default: 23:59'},
+                           {'type':str,
+                            'metavar':'EXTENSION',
+                            'default':'pdf',
+                            'help':'The image format of convection maps.'
+                            ' Default: pdf'},
+                           {'type':str,
+                            'metavar':'PATH',
+                            'default':self._current_path+'/ConvectionMaps.log',
+                            'help':'The absolute path to the log file'
                             ' Default: {}/ConvectionMaps.log'
-                            ''.format(self._current_path))
-
-        parser.add_argument('-d', '--datapath', type=str,
-                            metavar='PATH', default=self._current_path,
-                            help='The absolute path to the fitacf data.'
-                            ' Default: {}'.format(self._current_path))
-        parser.add_argument('-p', '--plotpath', type=str,
-                            metavar='PATH', default=self._current_path,
-                            help='The absolute path to where the convection'
+                            ''.format(self._current_path)},
+                           {'type':str,
+                            'metavar':'PATH',
+                            'default':self._current_path,
+                            'help':'The absolute path to the fitted data.'
+                            ' Default: {}'.format(self._current_path)},
+                           {'type':str,
+                            'metavar':'PATH',
+                            'default':self._current_path,
+                            'help':'The absolute path to where the convection'
                             ' maps will be saved.'
-                            ' Default: {}'.format(self._current_path))
-        parser.add_argument('-o', '--omnipath', type=str,
-                            metavar='PATH', default=self._current_path,
-                            help='The absolute path to where the omni files'
+                            ' Default: {}'.format(self._current_path)},
+                           {'type':str,
+                            'metavar':'PATH',
+                            'default':self._current_path,
+                            'help':'The absolute path to where the map files'
                             ' will be saved to.'
-                            ' Default: {}'.format(self._current_path))
-        parser.add_argument('-m', '--mappath', type=str,
-                            metavar='PATH', default=self._current_path,
-                            help='The absolute path to where the map files'
-                            ' will be saved to.'
-                            ' Default: {}'.format(self._current_path))
-        parser.add_argument('-k', '--keypath', type=str,
-                            metavar='PATH', default=self._current_path,
-                            help="The absolute path to the key file for"
+                            ' Default: {}'.format(self._current_path)},
+                           {'type':str,
+                            'metavar':'PATH',
+                            'default':self._current_path,
+                            'help':"The absolute path to the key file for"
                             "the convection maps."
-                            " Default: {}".format(self._current_path))
+                            " Default: {}".format(self._current_path)},
+                           {'action':'store_true',
+                            'help':'Turns on verbose mode.'}]
+        self.parameter = flag_options('fitacf2convectionmap',
+                                      'Converts fitted data files to convection maps',
+                                      option_names,
+                                      option_settings)
 
-        # Parallel options
-        parser.add_argument('-n', '--num_proc', type=int,
-                            metavar='NUMPROCESSORS', default=1,
-                            help='The number of processors you wish to use'
-                            ' in parallel mode. '
-                            ' This option enables parallel mode.'
-                            ' Not implemented yet'
-                            ' Default: 1')
 
-        # Standard options, note: the help option is handled by argparse
-        parser.add_argument('-v', '--verbose', action='store_true',
-                            help='Turns on verbose mode.')
 
-        self.parameter = parser.parse_args()
-        self.parameter = vars(self.parameter)
-        print(self.parameter)
+
+        #parser = argparse.ArgumentParser(prog='fitacf2convectionmap',
+        #                                 description='Converts fitacf files'
+        #                                             ' to convection maps')
+        ## required arguement
+        #parser.add_argument('date', type=str,
+        #                    help='The date of the fitacf data.'
+        #                    ' Format: YYYYMMDD')
+
+        ## RST options
+        #parser.add_argument('-c', '--channel', type=str,
+        #                    choices=[0, 1, 2, 3, 4, 5], default='5',
+        #                    help='Select the channel number of data'
+        #                    ' to use for the convection map process.'
+        #                    ' Default: 5 - use all channels')
+        #parser.add_argument('--integration-time', type=int,
+        #                    default='120',
+        #                    help='Integration time between each plot in seconds.'
+        #                    ' Default: 120 - 2 minute convection plots')
+        #parser.add_argument('--hemisphere', type=str,
+        #                    choices=['north', 'south'], default='north',
+        #                    help='The hemisphere you want to assimilate.'
+        #                    ' Default: north')
+        #parser.add_argument('--canadian', action='store_true',
+        #                    help='Set to use only the canadian radards.')
+        #parser.add_argument('--start-time', type=str,
+        #                    metavar='hh:mm', default='00:00',
+        #                    help='The start time at hh:mm of the fitacf data.'
+        #                    ' Default: 00:00')
+        #parser.add_argument('--end-time', type=str,
+        #                    metavar='hh:mm', default='23:59',
+        #                    help='The end time at hh:mm of the fitacf data.'
+        #                    ' Default: 23:59')
+        #parser.add_argument('--rst-version', type=float,
+        #                    metavar='N', default=4.1,
+        #                    help='The version number of RST that'
+        #                    ' you are using. Default: 4.1')
+        #parser.add_argument('-i', '--image-extension', type=str,
+        #                    metavar='EXTENSION', default='pdf',
+        #                    help='The image format of convection maps.'
+        #                    ' Default: pdf')
+
+        ## This was going to be used in the case of a general script, however,
+        ## I am currently not sure which steps are needed for various data
+        ## formats and in the future it might be easier for the user to
+        ## to inherit this class and then modify as needed for the format.
+        ## TODO: decide whether this should be taken out.
+        ## parser.add_argument('-f','--data-format',type=str,
+        ##                    choices=['fitacf','fit','fitred'],default='fitacf ',
+        ##                    help='The data format to use for generating the'
+        ##                    ' convection maps Default: fitacf')
+
+        ## Path options
+        #parser.add_argument('-l', '--logfile', type=str,
+        #                    metavar='PATH',
+        #                    default=self._current_path+'/ConvectionMaps.log',
+        #                    help='The absolute path to the log file'
+        #                    ' Default: {}/ConvectionMaps.log'
+        #                    ''.format(self._current_path))
+
+        #parser.add_argument('-d', '--datapath', type=str,
+        #                    metavar='PATH', default=self._current_path,
+        #                    help='The absolute path to the fitacf data.'
+        #                    ' Default: {}'.format(self._current_path))
+        #parser.add_argument('-p', '--plotpath', type=str,
+        #                    metavar='PATH', default=self._current_path,
+        #                    help='The absolute path to where the convection'
+        #                    ' maps will be saved.'
+        #                    ' Default: {}'.format(self._current_path))
+        #parser.add_argument('-o', '--omnipath', type=str,
+        #                    metavar='PATH', default=self._current_path,
+        #                    help='The absolute path to where the omni files'
+        #                    ' will be saved to.'
+        #                    ' Default: {}'.format(self._current_path))
+        #parser.add_argument('-m', '--mappath', type=str,
+        #                    metavar='PATH', default=self._current_path,
+        #                    help='The absolute path to where the map files'
+        #                    ' will be saved to.'
+        #                    ' Default: {}'.format(self._current_path))
+        #parser.add_argument('-k', '--keypath', type=str,
+        #                    metavar='PATH', default=self._current_path,
+        #                    help="The absolute path to the key file for"
+        #                    "the convection maps."
+        #                    " Default: {}".format(self._current_path))
+
+        ## Parallel options
+        #parser.add_argument('-n', '--num_proc', type=int,
+        #                    metavar='NUMPROCESSORS', default=1,
+        #                    help='The number of processors you wish to use'
+        #                    ' in parallel mode. '
+        #                    ' This option enables parallel mode.'
+        #                    ' Not implemented yet'
+        #                    ' Default: 1')
+
+        ## Standard options, note: the help option is handled by argparse
+        #parser.add_argument('-v', '--verbose', action='store_true',
+        #                    help='Turns on verbose mode.')
+
+        #self.parameter = parser.parse_args()
+        #self.parameter = vars(self.parameter)
+        #print(self.parameter)
         if not os.path.exists(self.parameter['datapath']):
             raise PathDoesNotExistException(self.parameter['datapath'])
 

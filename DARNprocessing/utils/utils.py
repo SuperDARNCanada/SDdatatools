@@ -7,12 +7,42 @@
 
 import os
 import logging
+import argparse
 from subprocess import call
 from glob import glob
 
 from DARNprocessing.utils.convectionMapExceptions import (RSTException,
                                                           RSTFileEmptyException)
 
+
+def flag_options(program_name,program_desc,option_names,option_settings):
+    """
+    Parameter options is a utility to add options to runnable scripts
+
+        :param program_name: name of the program
+        :param program_desc: description of the program
+        :param options: dictionary of dictionaries containing
+                        the following structure:
+                        { '<option name>': {''}
+                            *Note: for required options do not use a hyphen,
+                                   for flag options use a single hyphen for
+                                   singlular letters and two hyphens for words
+        :return options_object: passes back an options object the method can
+                                invoke to obtain the values from sys.argv
+
+    """
+    parser = argparse.ArgumentParser(prog=program_name,
+                                     description=program_desc)
+    # required arguement
+    for option_name, option_setting in zip(option_names,option_settings):
+        if len(option_name) == 1:
+            parser.add_argument(*option_name,**option_setting)
+        else:
+            parser.add_argument(*option_name,**option_setting)
+
+
+    parameter = parser.parse_args()
+    return vars(parameter)
 
 def file_exists(filename):
     """
