@@ -35,14 +35,25 @@ def flag_options(program_name,program_desc,option_names,option_settings):
                                      description=program_desc)
     # required arguement
     for option_name, option_setting in zip(option_names,option_settings):
-        if len(option_name) == 1:
-            parser.add_argument(*option_name,**option_setting)
+        if type(option_name) is str:
+            parser.add_argument(option_name,**option_setting)
         else:
             parser.add_argument(*option_name,**option_setting)
 
 
     parameter = parser.parse_args()
     return vars(parameter)
+
+def path_exists(path):
+    """
+    Check if a path exists
+
+        :param path: path to check
+        :raise PathDoesNotExistException: path does not exist
+    """
+    if not os.path.exists(path):
+        raise PathDoesNotExistException(path)
+
 
 def file_exists(filename):
     """
