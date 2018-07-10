@@ -29,7 +29,8 @@ from DARNprocessing.utils.convectionMapConstants import (ErrorCodes,
                                                          SouthRadar,
                                                          CanadianRadar,
                                                          RstConst,
-                                                         RadarConst)
+                                                         RadarConst,
+                                                         CompressionType)
 
 from DARNprocessing.utils.convectionMapWarnings import (ConvertWarning,
                                                         OmniFileNotFoundWarning,
@@ -313,17 +314,30 @@ class ConvectionMaps():
         logging.info("Data path: " + self.parameter['data_path'])
 
     # TODO: implement parallel version
-    def _generate_radar_grid_file(self, radar_abbrv, data_path):
+    def generate_radar_grid_file(self, radar_abbrv, data_file):
         """
         Helper function for generate_grid_files to generate a grid file(s) for
         a single radar extension. This can be used to parallelize the grid
         generation process.
-        """
-        # TODO: delete it if glob works for getting any type of file name
-        # data_filename = "{date}{ext}".format(date=self.parameter['date'],
-        #                                      ext=radar_ext)
 
-        data_filename = os.path.basename(data_path)
+            :param radar_abbrv: 3 letter acroynm of the radar
+            :param data_file: str fitted data file name with extension
+            :raise ValueError: if the radar abbrevation is not in the data file
+                               name which means it could be generating the wrong
+                               grid file.
+        """
+
+        # Sanity check
+        if(radar_abbrv not in data_file):
+            logging.error('Mismatched radar abbreviation: {radar} and file name'
+                          ' {filename}'.format(radar=radar_abbbrv,
+                                               filename=data_file))
+            raise ValueError('Mismatched radar abbreviation: {radar} and file name'
+                             ' {filename}'.format(radar=radar_abbbrv,
+                                                  filename=data_file))
+
+        data_path = "{path}/{filename}".format(path=self.parameter['data_path'],
+                                               filename=data_file)
 
         # Standard naming convention for grid files
         grid_filename = "{date}.{abbrv}.grid".format(date=self.parameter['date'],
@@ -333,40 +347,50 @@ class ConvectionMaps():
                     "".format(data_path=self.parameter['plot_path'],
                               grid_file=grid_filename)
 
-        # if the data file is not in the current file then check in the
-        # in the provided data folder.
+        # if the data file is not in data path then check in the
+        # in the current directory.
         if os.path.isfile(data_path):
             try:
                 shutil.copy2(data_path,
-                             self.parameter['plot_path']+'/'+data_filename)
+                             "{path}/{filename}"\
+                             "".format(path=self.parameter['plot_path'],
+                                       filename=data_filename)
             except shutil.Error as msg:
                 logging.warn(msg)
 
-            data_path = self.parameter['plot_path']+'/'+data_filename
+            data_path = "{path}/{filename}"\
+                             "".format(path=self.parameter['plot_path'],
+                                       filename=data_filename)
 
             # unzip any possible compression formats...
+            compression_extension = data_file.split('.')[-1]
+            compression_command = "{command} {datapath}"\
+                                  "".format(command=CompressionType.EXT[compression_extension],
+                                            datapath=data_path)
+
+
             # TODO: replace this with a dictionary to key in for various compression types
             #       and the dictionary lives in the constants file so that the user changes that file
             #       not this file
-            if 'gz' in data_path:
-                gzip_command = "gzip -df {data_path}"\
-                               "".format(data_path=data_path,
-                                         plot_path=self.parameter['plot_path'])
-                if call(gzip_command, shell=True) != 0:
-                    logging.warn(FileNotFoundWarning(data_filename))
-                    self.radars_errors += data_filename + '\n'
-                    return ErrorCodes.ERRFILENOTFOUND
-                data_filename = data_filename.strip('.gz')
+            #if 'gz' in data_path:
+            #    gzip_command = "gzip -df {data_path}"\
+            #                   "".format(data_path=data_path,
+            #                             plot_path=self.parameter['plot_path'])
+            #    if call(gzip_command, shell=True) != 0:
+            #        logging.warn(FileNotFoundWarning(data_filename))
+            #        self.radars_errors += data_filename + '\n'
+            #        return ErrorCodes.ERRFILENOTFOUND
+            #    data_filename = data_filename.strip('.gz')
 
-            elif 'bz2' in data_path:
-                bzip2_command = "bzip2 -dfv {data_path}"\
-                                "".format(data_path=data_path,
-                                          plot_path=self.parameter['plot_path'])
-                if call(bzip2_command, shell=True) != 0:
-                    logging.warn(FileNotFoundWarning(data_filename))
-                    self.radars_errors += data_filename + '\n'
-                    return ErrorCodes.ERRFILENOTFOUND
-                data_filename = data_filename.strip('.bz2')
+            #elif 'bz2' in data_path:
+            #    bzip2_command = "bzip2 -dfv {data_path}"\
+            #                    "".format(data_path=data_path,
+            #                              plot_path=self.parameter['plot_path'])
+            #    if call(bzip2_command, shell=True) != 0:
+            #        logging.warn(FileNotFoundWarning(data_filename))
+            #        self.radars_errors += data_filename + '\n'
+            #        return ErrorCodes.ERRFILENOTFOUND
+            #    data_filename = data_filename.strip('.bz2')
 
         else:
             logging.warn("{datafile} was not found in the data_path: {data_path}"
@@ -540,19 +564,6 @@ class ConvectionMaps():
 
         return (fitacf_path, radar_abbrv)
 
-    # TODO: need to determine what wrappers should be where ... hmmm
-
-    # TODO: implement a method to generate fitacf files from rawacf files
-    def generate_fitacf_files(self):
-        pass
-
-    # TODO: implement a method to convert rawacf to lmfit using Ashton's code
-    def generate_lmfit_files(self):
-        pass
-
-    def concatinate_fitted_date(self):
-        pass
-
     def generate_grid_files(self):
         """
         Generates the grid files used in the map generation step.
@@ -560,12 +571,11 @@ class ConvectionMaps():
         radar_abbrv = []
         if self.parameter['hemisphere'] == 'south':
             radar_abbrv = SouthRadar.RADAR_ABBRV
-        elif self.parameter['hemisphere'] == 'canadian':
+        elif self.parameter['hemisphere'] == 'Canadian':
             radar_abbrv = CanadianRadar.RADAR_ABBRV
         else:
             radar_abbrv = NorthRadar.RADAR_ABBRV
 
-        # TODO: need to handle fit files...
         grid_file_counter = 0
         for ext in RadarConst.FILE_TYPE:
             for abbrv in radar_abbrv:

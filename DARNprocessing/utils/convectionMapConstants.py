@@ -205,14 +205,17 @@ class CanadianRadar():
                    'rkn',
                    'sas'}
 
+class CompressionsTypes():
+    """
+    CompressionTypes is the possible types of compressions
+    that are used on fitted data.
 
-# TODO: this may not be need anymore
-class FileExtensions():
-    CONCATINATION = '.C0'
-    FITACF = '.fitacf'
-    FITCON = 'C.fit'
-    FITRED = 'C.fitred'
-
+        Constants:
+            EXT: is a dictionary of the compression extension
+                with the compression command and options as the value.
+    """
+    EXT = {'gz': 'gzip -df',
+           'bz2': 'bzip2 -dfv'}
 
 # TODO: these may not be used anymore as well
 class ErrorCodes():
