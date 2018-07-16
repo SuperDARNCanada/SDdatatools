@@ -6,7 +6,7 @@ setup(
     license="GNU",
     packages=find_packages(exclude=['docs', 'test']),
     author="SuperDARN Canada",
-    scripts=['./bin/fitdata2convectionPlots.py','./bin/fitdata2map.py']
+    scripts=['./bin/fitdata2convectionPlots.py','./bin/fitdata2map.py','./bin/omniDataAvailability']
 )
 
 
