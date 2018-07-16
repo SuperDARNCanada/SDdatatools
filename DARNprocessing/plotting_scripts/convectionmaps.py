@@ -30,7 +30,7 @@ from DARNprocessing.utils.convectionMapConstants import (ErrorCodes,
                                                          CanadianRadar,
                                                          RstConst,
                                                          RadarConst,
-                                                         CompressionType)
+                                                         CompressionsTypes)
 
 from DARNprocessing.utils.convectionMapWarnings import (ConvertWarning,
                                                         OmniFileNotFoundWarning,
@@ -354,7 +354,7 @@ class ConvectionMaps():
                 shutil.copy2(data_path,
                              "{path}/{filename}"\
                              "".format(path=self.parameter['plot_path'],
-                                       filename=data_filename)
+                                       filename=data_filename))
             except shutil.Error as msg:
                 logging.warn(msg)
 
