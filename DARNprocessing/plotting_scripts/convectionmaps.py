@@ -168,7 +168,7 @@ class ConvectionMaps():
                         ('-e','--end-time'),
                         ('-x','--image-ext'),
                         ('-l','--logfile'),
-                        ('-f','--data-format'),
+                        #('-f','--data-format'),
                         ('-d','--data-path'),
                         ('-p','--plot-path'),
                         ('-m','--map-path'),
