@@ -20,10 +20,5 @@ class Fitacf2ConvectionMap(ConvectionMaps):
         def __init__(self,arguments):
             ConvectionMaps.__init__(self, arguments)
 
-
-        def
-
-
-
 if __name__ == '__main__':
     Fitacf2ConvectionMap(sys.argv[1:])

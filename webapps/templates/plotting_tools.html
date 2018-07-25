@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Data :: Plots and Data </title>
+  <!-- Meta -->
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link href='https://fonts.googleapis.com/css?family=Roboto:400,400italic,500,500italic,700,700italic,900,900italic,300italic,300' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Roboto+Slab:400,700,300,100' rel='stylesheet' type='text/css'>
+  <!-- Global CSS -->
+  <link rel="stylesheet" href="static/bootstrap.min.css" type="text/css">
+  <!-- Plugins CSS -->
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.6/css/all.css">
+  <link rel="stylesheet" href="static/flexslider.css" type="text/css">
+  <!-- Theme CSS -->
+  <link id="theme-style" rel="stylesheet" href="static/styles.css" type="text/css">
+</head>
+
+
+<section class="story-section section section-on-bg">
+    <h2 class="title container text-center" style="background-color:#cc0000;">SuperDARN Plotting Tools</h2>
+    <div class="story-container container text-center">
+        <div class="our-tools">
+            <p> This web-page is used to gnerate various superDARN webtools for the Canadian Radar: Rankin Inlet, Saskatoon, Inuvet, Clyde River, and Prince George or from data provided by the user.
+            </p>
+        </div>
+        <div class="plotting button" id="plot-type">
+            <div class="container with-spacing">
+                <div class="row">
+                    <div class="col-sm-12 col-md-6 grew-bg">
+                        <div class="btn btn-group dropright">
+                            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="plot-type-label">plot type<i class="fa fa-arrow-circle-right" aria-hidden="true"></i>
+                            </button>
+                            <div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; transform: translate3d(80px, 38px, 0px); top: 0px; left: 0px; will-change: transform;">
+                                <a class="dropdown-item " href="#">RTI</a>
+                                <a class="dropdown-item " href="#">Convection</a>
+                                <a class="dropdown-item " href="#">Fan</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <form method=post action="" enctype="multipart/form-data">
+                        {% for field in form %}
+                        <div class="form-group row">
+                            <div class="form-group mb-3">
+                                <div class="col-sm-10">
+                                    <span class="input-group" id="basic-addon">{{ field.label }} </span>
+                                </div>
+                                 {{ field(class_="form-control", placeholder=field.description) }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+  <!-- Javascript -->
+  <script type="text/javascript" src="static/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="static/plotting_tools.js"></script>
+  <script type="text/javascript" src="static/popper.min.js"></script>
+  <script type="text/javascript" src="static/bootstrap.min.js"></script>
+  <script type="text/javascript" src="static/back-to-top.js"></script>
+  <script type="text/javascript" src="static/jquery.flexslider-min.js"></script>
+  <script type="text/javascript" src="static/main.js"></script>
+
+
+</html>

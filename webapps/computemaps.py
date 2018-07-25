@@ -4,7 +4,6 @@ import os
 
 def compute_maps(date, integration_time,start_time):
     data_path = "/home/marina/data/"
-    omni_path = os.getcwd() + "/omni/"
     plot_path = os.getcwd() + "/static/"
     map_path = os.getcwd() + "/maps/"
 
@@ -23,11 +22,10 @@ def compute_maps(date, integration_time,start_time):
                                       'integration_time': integration_time,
                                       'start_time': start_time,
                                       'end_time': end_time,
-                                      'datapath': data_path,
-                                      'plotpath': plot_path,
-                                      'omnipath': omni_path,
-                                      'mappath': map_path,
-                                      'image_extension': 'png'})
+                                      'data_path': data_path,
+                                      'plot_path': plot_path,
+                                      'map_path': map_path,
+                                      'image_ext': 'png'})
     convec_map.generate_grid_files()
     convec_map.generate_map_files()
     convec_map.generate_RST_convection_maps()
