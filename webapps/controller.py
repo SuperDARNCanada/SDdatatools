@@ -12,11 +12,16 @@ app.secret_key = 'MySecretKey'
 if not os.path.isdir(UPLOAD_DIR):
     os.mkdir(UPLOAD_DIR)
 
-ALLOWED_EXTENSIONS = set(['fitacf', 'lmfit', 'rawacf', 'gz', 'bz2', 'map'])
+RTI_FAN_EXTENSIONS = set(['fitacf', 'lmfit'])
+CONVECTION_EXTENSIONS = set(['map'])
 
-def alloed_file(filename):
+def allowed_rti_fan_file(filename):
     return '.' in filename and \
-            filename.rsplit('.',1)[-1] in ALLOWED_EXTENSIONS
+            filename.rsplit('.',1)[-1] in RTI_FAN_EXTENSIONS
+
+def allowed_convection_file(filename):
+    return '.' in filename and \
+            filename.rsplit('.',1)[-1] in CONVECTION_EXTENSIONS
 
 @app.route('/webapps', methods=['GET', 'POST'])
 def index():
@@ -28,37 +33,21 @@ def index():
     filename = None
 
     if request.method == 'POST':
-        file = request.files[plot_file = request.files[form.filename.name]
-                if file and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    file.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
-                result = compute_maps(form.filename.data,
-                              form.date.data,
-                              form.integration_time.data,
-                              form.start_time.data)
-orm.filename.name]
-                if file and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    file.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
-                result = compute_maps(form.filename.data,
-                              form.date.data,
-                              form.integration_time.data,
-                              form.start_time.data)
+        file = request.files[plot_file = request.files[plot_form.filename.name]
 
-        if rti_form.validate_on_submit():
+        if rti_form.validate_on_submit() and file and allowed_rti_fan_file(file.filename):
+               filename = secure_filename(file.filename)
+               file.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
 
         if convection_form.validate_on_submit():
+           if file and allowed_convection_file(file.filename):
+               filename = secure_filename(file.filename)
+               file.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
 
-        if fan_form.validate_on_submit():
-            if request._files:
-                    else:
-        result = None
-    print form, dir(form)
-    #print form.keys()
-    for f in form:
-        print f.id
-        print f.name
-        print f.label
+        if fan_form.validate_on_submit() and file and allowed_rti_fan_file(file.filename):
+               filename = secure_filename(file.filename)
+               file.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
+
 
     return render_template('plotting_tools.html',
                            form=form, result=result)

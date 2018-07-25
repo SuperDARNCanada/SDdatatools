@@ -12,7 +12,6 @@ from __future__ import print_function
 import logging
 import shutil
 import os
-import argparse
 import re
 
 from datetime import datetime
@@ -24,26 +23,25 @@ from DARNprocessing.utils.utils import (file_exists,
                                         flag_options,
                                         path_exists)
 
-from DARNprocessing.utils.convectionMapConstants import (ErrorCodes,
-                                                         NorthRadar,
+from DARNprocessing.utils.convectionMapConstants import (NorthRadar,
                                                          SouthRadar,
                                                          CanadianRadar,
                                                          RstConst,
-                                                         RadarConst,
-                                                         CompressionsTypes)
+                                                         RadarConst)
 
 from DARNprocessing.utils.convectionMapWarnings import (ConvertWarning,
                                                         OmniFileNotFoundWarning,
                                                         EmptyDataFileWarning,
-                                                        FileNotFoundWarning,
                                                         OmniBadDataWarning,
                                                         OmniFileNotGeneratedWarning)
 
 from DARNprocessing.utils.convectionMapExceptions import (NoGridFilesException,
                                                           OmniException,
                                                           RSTException,
+                                                          FileDoesNotExistException,
                                                           RSTFileEmptyException,
-                                                          PathDoesNotExistException)
+                                                          PathDoesNotExistException,
+                                                          UnsupportedTypeException)
 
 from DARNprocessing.IMF_scripts.omni import Omni
 
@@ -101,17 +99,16 @@ class ConvectionMaps():
         else:
             self.parameter = {'date': None,
                               'channel': 5,
-                              'integration_time':120,
+                              'integration_time': 120,
                               'hemisphere': 'north',
                               'start_time': '00:00',
                               'end_time': '23:59',
                               'rst_version': 4.1,
                               'image_ext': 'pdf',
-                              'logfile': self._current_path + \
-                                         '/ConvectionMaps.log',
+                              'logfile': self._current_path +
+                              '/ConvectionMaps.log',
                               'data_path': self._current_path,
                               'plot_path': self._current_path,
-                              'map_path': self._current_path,
                               'map_path': self._current_path,
                               'key_path': self._current_path,
                               'num_proc': 1}
@@ -131,8 +128,7 @@ class ConvectionMaps():
 
         # Logging information setup
         FORMAT = "%(levelname)s %(asctime)-15s: %(message)s"
-        logging.basicConfig(filename=self._current_path +\
-                            self.parameter['logfile'],
+        logging.basicConfig(filename=self.parameter['logfile'],
                             format=FORMAT,
                             level=logging.DEBUG)
         logging.info("Parameter list:" + str(self.parameter))
@@ -161,83 +157,83 @@ class ConvectionMaps():
 
         # Note: -h is reserved for --help feature thus -H for hemisphere
         option_names = [('date'),
-                        ('-c','--channel'),
-                        ('-i','--integration-time'),
-                        ('-H','--hemisphere'),
-                        ('-s','--start-time'),
-                        ('-e','--end-time'),
-                        ('-x','--image-ext'),
-                        ('-l','--logfile'),
-                        #('-f','--data-format'),
-                        ('-d','--data-path'),
-                        ('-p','--plot-path'),
-                        ('-m','--map-path'),
-                        ('-k','--key-path'),
-                        ('-v','--verbose')]
-        option_settings = [{'type':str,
-                            'metavar':'YYYYMMDD',
-                            'help':'The date of the fitacf data.'},
-                           {'type':int,
-                            'choices':[0, 1, 2, 3, 4, 5],
-                            'default':5,
-                            'help':'Select the channel number of data'
+                        ('-c', '--channel'),
+                        ('-i', '--integration-time'),
+                        ('-H', '--hemisphere'),
+                        ('-s', '--start-time'),
+                        ('-e', '--end-time'),
+                        ('-x', '--image-ext'),
+                        ('-l', '--logfile'),
+                        #('-f','--data-format'),  maybe something to add in the future?
+                        ('-d', '--data-path'),
+                        ('-p', '--plot-path'),
+                        ('-m', '--map-path'),
+                        ('-k', '--key-path'),
+                        ('-v', '--verbose')]
+        option_settings = [{'type': str,
+                            'metavar': 'YYYYMMDD',
+                            'help': 'The date of the fitacf data.'},
+                           {'type': int,
+                            'choices': [0, 1, 2, 3, 4, 5],
+                            'default': 5,
+                            'help': 'Select the channel number of data'
                             ' to use for the convection map process.'
                             ' Default: 5 - use all channels'},
-                           {'type':int,
-                            'default':'120',
-                            'help':'Integration time between each plot in seconds.'
+                           {'type': int,
+                            'default': '120',
+                            'help': 'Integration time between each plot in seconds.'
                             ' Default: 120 - 2 minute convection plots'},
-                           {'type':str,
-                            'choices':['north', 'south','Canadian'],
-                            'default':'north',
-                            'help':'The hemisphere you want to assimilate.'
+                           {'type': str,
+                            'choices': ['north', 'south', 'Canadian'],
+                            'default': 'north',
+                            'help': 'The hemisphere you want to assimilate.'
                             ' Default: north'},
-                           {'type':str,
-                            'metavar':'hh:mm',
-                            'default':'00:00',
-                            'help':'The start time at hh:mm of the fitacf data.'
+                           {'type': str,
+                            'metavar': 'hh:mm',
+                            'default': '00:00',
+                            'help': 'The start time at hh:mm of the fitacf data.'
                             ' Default: 00:00'},
-                           {'type':str,
-                            'metavar':'hh:mm',
-                            'default':'23:59',
-                            'help':'The end time at hh:mm of the fitacf data.'
+                           {'type': str,
+                            'metavar': 'hh:mm',
+                            'default': '23:59',
+                            'help': 'The end time at hh:mm of the fitacf data.'
                             ' Default: 23:59'},
-                           {'type':str,
-                            'metavar':'EXTENSION',
-                            'default':'png',
-                            'help':'The image format of convection maps.'
+                           {'type': str,
+                            'metavar': 'EXTENSION',
+                            'default': 'png',
+                            'help': 'The image format of convection maps.'
                             ' Default: pdf'},
-                           {'type':str,
-                            'metavar':'PATH',
-                            'default':self._current_path+'/ConvectionMaps.log',
-                            'help':'The absolute path to the log file'
+                           {'type': str,
+                            'metavar': 'PATH',
+                            'default': self._current_path+'/ConvectionMaps.log',
+                            'help': 'The absolute path to the log file'
                             ' Default: {}/ConvectionMaps.log'
                             ''.format(self._current_path)},
-                           {'type':str,
-                            'metavar':'PATH',
-                            'default':self._current_path,
-                            'help':'The absolute path to the fitted data.'
+                           {'type': str,
+                            'metavar': 'PATH',
+                            'default': self._current_path,
+                            'help': 'The absolute path to the fitted data.'
                             ' Default: {}'.format(self._current_path)},
-                           {'type':str,
-                            'metavar':'PATH',
-                            'default':self._current_path,
-                            'help':'The absolute path to where the convection'
+                           {'type': str,
+                            'metavar': 'PATH',
+                            'default': self._current_path,
+                            'help': 'The absolute path to where the convection'
                             ' maps will be saved.'
                             ' Default: {}'.format(self._current_path)},
-                           {'type':str,
-                            'metavar':'PATH',
-                            'default':self._current_path,
-                            'help':'The absolute path to where the map files'
+                           {'type': str,
+                            'metavar': 'PATH',
+                            'default': self._current_path,
+                            'help': 'The absolute path to where the map files'
                             ' will be saved to.'
                             ' Default: {}'.format(self._current_path)},
-                           {'type':str,
-                            'metavar':'PATH',
-                            'default':self._current_path,
-                            'help':"The absolute path to the key file for"
+                           {'type': str,
+                            'metavar': 'PATH',
+                            'default': self._current_path,
+                            'help': "The absolute path to the key file for"
                             "the convection maps."
                             " Default: {}".format(self._current_path)},
-                           {'action':'store_true',
-                            'help':'Turns on verbose mode.'}]
+                           {'action': 'store_true',
+                            'help': 'Turns on verbose mode.'}]
         self.parameter = flag_options('fitacf2convectionmap',
                                       'Converts fitted data files to convection maps',
                                       option_names,
@@ -255,7 +251,7 @@ class ConvectionMaps():
         self.parameter['data_path'] = new_data_path
         path_exists(self.parameter['data_path'])
 
-    def set_date(self,new_date):
+    def set_date(self, new_date):
         """
         set the date, used when the user wants to change the date without
         changing the other settings.
@@ -282,14 +278,13 @@ class ConvectionMaps():
             :param new_hemisphere: ['north','south','Canadian']
                                    the new hemisphere
         """
-        if new_hemisphere not in ['north','south','Canadian']:
+        if new_hemisphere not in ['north', 'south', 'Canadian']:
             raise ValueError("{hemisphere} is not of the following options:"
                              " north, south, Canadian"
                              "".format(hemisphere=new_hemisphere))
         self.parameter['hemisphere'] = new_hemisphere
 
     # TODO: finish other set functions.
-
 
     def _generate_paths(self):
         """
@@ -330,15 +325,50 @@ class ConvectionMaps():
         # Sanity check
         if(radar_abbrv not in data_file):
             logging.error('Mismatched radar abbreviation: {radar} and file name'
-                          ' {filename}'.format(radar=radar_abbbrv,
+                          ' {filename}'.format(radar=radar_abbrv,
                                                filename=data_file))
             raise ValueError('Mismatched radar abbreviation: {radar} and file name'
-                             ' {filename}'.format(radar=radar_abbbrv,
+                             ' {filename}'.format(radar=radar_abbrv,
                                                   filename=data_file))
 
-        data_path = "{path}/{filename}".format(path=self.parameter['data_path'],
-                                               filename=data_file)
+        # More Sanity checks, because the method is public
+        # we have to make sure the user is providing correct file types
+        data_file_ext = data_file.split('.')[-1]
+        if data_file_ext not in RadarConst.COMPRESSION_TYPES and \
+           data_file_ext not in RadarConst.FILE_TYPE:
+            msg = "Error: {datafiletype} file type or compression extension"\
+                    " is not supported. Please use one for the following"\
+                    " supported types: {filetypes} {compresiontypes}"\
+                    "".format(datafiletype=data_file_ext,
+                              filetypes=RadarConst.FILE_TYPE,
+                              compressiontypes=RadarConst.COMPRESSION_TYPES)
+            logging.error(msg)
+            raise UnsupportedTypeException(msg)
 
+        if not os.path.isfile(data_file):
+            raise FileDoesNotExistException(data_file)
+
+        # if the data file is not in data path then check in the
+        # in the current directory.
+        data_path = "{path}/{filename}"\
+                    "".format(path=self.parameter['plot_path'],
+                              filename=os.path.basename(data_file))
+        try:
+            shutil.copy2(data_file, data_path)
+        except shutil.Error as msg:
+            logging.warn(msg)
+            logging.warn("{datafile} was not found in the data_path:"
+                         " {data_path} or plot_path: {plot_path},"
+                         " this file will not be used"
+                         "in the convection map process"
+                         "".format(data_path=self.parameter['data_path'],
+                                   datafile=data_file,
+                                   plot_path=self.parameter['plot_path']))
+            self.radars_missing += data_file + '\n'
+            message = "File {datafile} was not found, please make sure to"\
+                      " provide data path using -d option and that the"\
+                      " file exist in the folder".format(datafile=data_file)
+            raise OSError(message)  # TODO: better exception?
         # Standard naming convention for grid files
         grid_filename = "{date}.{abbrv}.grid".format(date=self.parameter['date'],
                                                      abbrv=radar_abbrv)
@@ -347,79 +377,26 @@ class ConvectionMaps():
                     "".format(data_path=self.parameter['plot_path'],
                               grid_file=grid_filename)
 
-        # if the data file is not in data path then check in the
-        # in the current directory.
-        if os.path.isfile(data_path):
+        if data_file_ext in RadarConst.COMPRESSION_TYPES:
             try:
-                shutil.copy2(data_path,
-                             "{path}/{filename}"\
-                             "".format(path=self.parameter['plot_path'],
-                                       filename=data_filename))
-            except shutil.Error as msg:
-                logging.warn(msg)
-
-            data_path = "{path}/{filename}"\
-                             "".format(path=self.parameter['plot_path'],
-                                       filename=data_filename)
-
-            # unzip any possible compression formats...
-            compression_extension = data_file.split('.')[-1]
-            compression_command = "{command} {datapath}"\
-                                  "".format(command=CompressionType.EXT[compression_extension],
-                                            datapath=data_path)
-
-
-            # TODO: replace this with a dictionary to key in for various compression types
-            #       and the dictionary lives in the constants file so that the user changes that file
-            #       not this file
-            #if 'gz' in data_path:
-            #    gzip_command = "gzip -df {data_path}"\
-            #                   "".format(data_path=data_path,
-            #                             plot_path=self.parameter['plot_path'])
-            #    if call(gzip_command, shell=True) != 0:
-            #        logging.warn(FileNotFoundWarning(data_filename))
-            #        self.radars_errors += data_filename + '\n'
-            #        return ErrorCodes.ERRFILENOTFOUND
-            #    data_filename = data_filename.strip('.gz')
-
-            #elif 'bz2' in data_path:
-            #    bzip2_command = "bzip2 -dfv {data_path}"\
-            #                    "".format(data_path=data_path,
-            #                              plot_path=self.parameter['plot_path'])
-            #    if call(bzip2_command, shell=True) != 0:
-            #        logging.warn(FileNotFoundWarning(data_filename))
-            #        self.radars_errors += data_filename + '\n'
-            #        return ErrorCodes.ERRFILENOTFOUND
-            #    data_filename = data_filename.strip('.bz2')
-
-        else:
-            logging.warn("{datafile} was not found in the data_path: {data_path}"
-                         " or plot_path: {plot_path}, this file will not be used"
-                         "in the convection map process"
-                         "".format(data_path=self.parameter['data_path'],
-                                   datafile=data_filename,
-                                   plot_path=self.parameter['plot_path']))
-            self.radars_missing += data_filename + '\n'
-            message = "File {datafile} was not found, please make sure to"\
-                      " provide data path using -d option and that the"\
-                      " file exist in the folder"
-            raise OSError(message)
-
-        data_path = self.parameter['plot_path']+'/'+data_filename
+                compression_command = "{command} {datapath}"\
+                                      "".format(command=RadarConst.EXT[data_file_ext],
+                                                datapath=data_path)
+                call(compression_command, shell=True)
+            except KeyError as err:
+                logging.warn(err)
+                msg = "Error: The compression extension {compressionext} "\
+                      "does not have a corresponding compression command"\
+                      " associated. Please use one of the following"\
+                      " implmented compressions types {compression}"\
+                      "".format(compresionext=data_file_ext,
+                                compression=RadarConst.EXT)
+                raise KeyError(msg)  # TODO: make a better exception for this case
 
         if os.path.getsize(data_path) == 0:
-            logging.warn(EmptyDataFileWarning(data_filename))
-            self.radars_errors += data_filename + '\n'
-            return ErrorCodes.ERREMPTYFILE
-
-        # TODO: maybe remove fit checking and make it a requirement and write a wrapper to convert fit files.
-        #       this is a hassel to check :( and really we should just archive fit files and convert to the most current file type
-        if 'C.fit' in data_filename:
-            try:
-                data_path, radar_abbrv = self.convert_fit_to_fitacf(data_path)
-            except RSTException as err:
-                logging.exception(err)
-                return ErrorCodes.ERRRST
+            logging.warn(EmptyDataFileWarning(data_file))
+            self.radars_errors += data_file + '\n'
+            raise RSTFileEmptyException(data_path)
 
         dmapdump_command = "dmapdump {} | grep -c '\"scan\" = -1'"\
                            "".format(data_path)
@@ -445,14 +422,14 @@ class ConvectionMaps():
         channelB = self._check_for_channel(data_path, 2)
         monochannel = self._check_for_channel(data_path, 0)
 
-        data_filename = os.path.basename(data_path)
-        if '.a.' in data_filename:
+        data_file = os.path.basename(data_path)
+        if '.a.' in data_file:
             grid_options = grid_options + " -cn_fix a"
-        elif '.b.' in data_filename:
+        elif '.b.' in data_file:
             grid_options = grid_options + " -cn_fix a"
-        elif '.c.' in data_filename:
+        elif '.c.' in data_file:
             grid_options = grid_options + " -cn_fix c"
-        elif '.d.' in data_filename:
+        elif '.d.' in data_file:
             grid_options = grid_options + " -cn_fix d"
         elif self.parameter['channel'] == 0:
                 grid_path = "{plot_path}/{date}.{abbrv}."\
@@ -521,7 +498,7 @@ class ConvectionMaps():
                             " -vemax {max_velocity}"\
                             " {datafile} > {gridpath}"\
                             "".format(gridoptions=grid_options,
-                                      integration_time=RstConst.INTEGRATION_TIME,
+                                      integration_time=self.parameter['integration_time'],
                                       max_velocity=RstConst.VEMAX,
                                       datafile=data_file,
                                       gridpath=grid_file)
@@ -585,9 +562,14 @@ class ConvectionMaps():
                                          abbrv=abbrv,
                                          ext=ext)
                 for filename in glob(file_pattern):
-                    if self._generate_radar_grid_file(abbrv, filename) == 0:
+                    try:
+                        self.generate_radar_grid_file(abbrv, filename)
                         grid_file_counter += 1
+                    except Exception as err:
+                        logging.error(err)
+                        continue
 
+        # useful logging information for the user
         logging.info(self.radars_used)
         logging.info(self.radars_missing)
         logging.info(self.radars_errors)
@@ -750,7 +732,8 @@ class ConvectionMaps():
         logging.info("Generating Convection Maps uring RST ")
         # TODO: A better method of importing the key file and
         # what to do when it is not provided
-        shutil.copy2("{}/rainbow.key".format(self.parameter['key_path']), self.parameter['plot_path'])
+        shutil.copy2("{}/rainbow.key".format(self.parameter['key_path']),
+                     self.parameter['plot_path'])
         key_option = "-vkeyp -vkey_path {}/ -vkey rainbow.key"\
                      "".format(self.parameter['plot_path'])
         map_path = "{map_path}/{date}.map"\
@@ -792,7 +775,7 @@ class ConvectionMaps():
         Cleans up any meta or data that should not be stored in the plot path.
         """
         path = "{plot_path}/{date}".format(plot_path=self.parameter['plot_path'],
-                                          date=self.parameter['date'])
+                                           date=self.parameter['date'])
 
         for f in glob(path+'*.grid'):
             os.remove(f)

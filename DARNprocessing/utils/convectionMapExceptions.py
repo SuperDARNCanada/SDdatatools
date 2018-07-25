@@ -21,6 +21,7 @@ class OmniException(Exception):
         Exception.__init__(self, self.message)
 
 
+# TODO: Move these exception to a FileExceptions file, RSTEceptions, ... etc
 class PathDoesNotExistException(Exception):
     """
     Exception for when a path does not exist, typically used on the datapath.
@@ -30,6 +31,29 @@ class PathDoesNotExistException(Exception):
     def __init__(self, path):
         self.path = path
         self.message = "Path: {} does not exist".format(path)
+        Exception.__init__(self, self.message)
+
+class FileDoesNotExistException(Exception):
+    """
+    Exception when a file does not exist.
+
+        :param filename: absolute path including the filename
+    """
+
+    def __init__(self, filename):
+        self.filename = filename
+        self.message = "Error: {} does not exist, please makes sure the spelling and path is correct."
+        Exception.__init__(self,self.message)
+
+class UnsupportedTypeException(Exception):
+    """
+    Exception when a file/compression type is not supported or is not implemented
+    in the process.
+        :param message: message of what is not supported and what is.
+    """
+
+    def __init__(self, message):
+        self.message = message
         Exception.__init__(self, self.message)
 
 
@@ -60,7 +84,6 @@ class RSTFileEmptyException(Exception):
         self.filename = filename
         self.message = "RST file {} is empty".format(self.filename)
         Exception.__init__(self, self.message)
-
 
 class NoGridFilesException(Exception):
     """

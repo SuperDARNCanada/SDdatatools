@@ -12,8 +12,8 @@ from subprocess import call
 from glob import glob
 
 from DARNprocessing.utils.convectionMapExceptions import (RSTException,
-                                                          RSTFileEmptyException)
-
+                                                          RSTFileEmptyException,
+                                                          PathDoesNotExistException)
 
 def flag_options(program_name,program_desc,option_names,option_settings):
     """

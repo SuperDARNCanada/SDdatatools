@@ -58,12 +58,17 @@ class RadarConst():
             gz
             bz2
 
+        EXT: is a dictionary of the compression extension
+                with the compression command and options as the value.
+
         No support to fit files because of the complexity of file format changes and
         radar acronym changes.
 
     """
     FILE_TYPE = ['lmfit2', 'fitacf']
     COMPRESSION_TYPES = ['gz', 'bz2']
+    EXT = {'gz': 'gzip -df',
+           'bz2': 'bzip2 -dfv'}
 
 
 """
@@ -205,17 +210,6 @@ class CanadianRadar():
                    'rkn',
                    'sas'}
 
-class CompressionsTypes():
-    """
-    CompressionTypes is the possible types of compressions
-    that are used on fitted data.
-
-        Constants:
-            EXT: is a dictionary of the compression extension
-                with the compression command and options as the value.
-    """
-    EXT = {'gz': 'gzip -df',
-           'bz2': 'bzip2 -dfv'}
 
 # TODO: these may not be used anymore as well
 class ErrorCodes():
