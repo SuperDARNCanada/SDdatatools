@@ -50,6 +50,32 @@ class Omni():
             timedelta(minutes=10)  # Omni time delay is ~10 minutes
         self.omni_start_time = omni_start_datetime.strftime("%Y%m%d%H")
 
+    def get_data_avialability(self):
+        """
+        get data availability, get the most updated data availability off of:
+            https://omniweb.gsfc.nasa.gov/html/ow_data.html for IMF data.
+            :retun datetime: retruns a datetime object that is the current
+                             data avialability date.
+        """
+        omni_date = datetime.strptime(self.start_time, "%Y%m%d %H:%M")
+        omni_year = omni_date.strftime("%Y")
+
+        # scrapes the omni website for the IMF data availability date by looking
+        # by looking for the most recent year 1963 in their database and IMF
+        # label.
+        curl_command = "curl https://omniweb.gsfc.nasa.gov/html/ow_data.html 2>/dev/null | grep '1963.*IMF' "
+        logging.info(curl_command)
+
+        try:
+            omni_update_time = check_output(curl_command, shell=True)
+        except CalledProcessError as e:
+            logging.warn("could not get the date the"
+                         " last time the file was updated")
+            raise OmniException(e)
+
+        # returns the omni updated time as a datetime object
+        return datetime.strptime(omni_update_time.split(" ")[3],"%Y-%m-%d")
+
     def check_for_updates(self, omni_filename=None):
         """
         Cross checks if the omni file on the website has been updated
@@ -70,26 +96,12 @@ class Omni():
         if not os.path.isfile(omni_file_path):
             raise OmniFileNotFoundWarning(omni_filename)
 
-        omni_date = datetime.strptime(self.start_time, "%Y%m%d %H:%M")
-        omni_year = omni_date.strftime("%Y")
-
-        curl_command = "curl -sI "\
-                       "ftp://spdf.gsfc.nasa.gov/pub/data/omni/high_res_omni/omni_min{}.asc "\
-                       "| grep Last-Modified "\
-                       "| sed 's/Last-Modified: //'".format(omni_year)
-        logging.info(curl_command)
-
         try:
-            omni_update_time = check_output(curl_command, shell=True)
-        except CalledProcessError:
-            logging.warn("could not get the date the"
-                         " last time the file was updated")
+            omni_modified_date = self.get_data_avialability()
+        except OmniException as e:
+            logging.warning("Exception from get_update_omni_date {}".format(e))
             return False
 
-        #  "%a, %d %b %Y %H:%M:%S %Z\r\n" is the format the the date is parsed
-        # from the website. example: 'Mon, 29 Jan 2018 14:56:10 GMT\r\n'
-        omni_modified_date = datetime.strptime(omni_update_time,
-                                               "%a, %d %b %Y %H:%M:%S %Z\r\n")
         local_omni_modified_date = datetime.fromtimestamp(
                                  os.path.getmtime(omni_file_path))
 
