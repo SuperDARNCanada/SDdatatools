@@ -1,13 +1,22 @@
 from model import RtiForm, ConvectionForm, FanForm, PlottypeForm
 from flask import Flask, render_template, request
 from computemaps import compute_maps
+from flask_wtf.csrf import CsrfProtect
 import sys, os
 
+
 app = Flask(__name__)
+#csrf = CsrfProtect(app)
 
 UPLOAD_DIR = 'uploads/'
 app.config['UPLOAD_FOLDER'] = UPLOAD_DIR
-app.secret_key = 'MySecretKey'
+
+
+# this may need to be read in by file to ensure it is not publicly known form github?
+app.config.update(dict(
+        SECRET_KEY="W3bApp!1cat1on",
+#        WTF_CSRF_SECRET_KEY="s2perD@RN"
+))
 
 if not os.path.isdir(UPLOAD_DIR):
     os.mkdir(UPLOAD_DIR)
@@ -25,32 +34,28 @@ def allowed_convection_file(filename):
 
 @app.route('/webapps', methods=['GET', 'POST'])
 def index():
-    plot_form = PlottypeForm() # might not need this form?
-    rti_form = RtiForm()
-    convection_form = ConvectionForm()
-    fan_form = FanForm()
+    plot_form = PlottypeForm(request.form) # might not need this form?
+    rti_form = RtiForm(request.form)
+    convection_form = ConvectionForm(request.form)
+    fan_form = FanForm(request.form)
 
-    filename = None
-
-    if request.method == 'POST':
-        file = request.files[plot_file = request.files[plot_form.filename.name]
-
-        if rti_form.validate_on_submit() and file and allowed_rti_fan_file(file.filename):
-               filename = secure_filename(file.filename)
-               file.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
-
-        if convection_form.validate_on_submit():
-           if file and allowed_convection_file(file.filename):
-               filename = secure_filename(file.filename)
-               file.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
-
-        if fan_form.validate_on_submit() and file and allowed_rti_fan_file(file.filename):
-               filename = secure_filename(file.filename)
-               file.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
+    if request.method == 'POST' and rti_form.validate():
+        print("compute rti")
+    elif request.method == 'POST' and convection_form.validate():
+        print("compute convection")
+    elif request.method == 'POST' and fan_form.validate():
+        print ("compute fan")
 
 
-    return render_template('plotting_tools.html',
-                           form=form, result=result)
+    return render_template("plotting_tools.html",
+                           plot_form=plot_form,
+                           rti_form=rti_form,
+                           convection_form=convection_form,
+                           fan_form=fan_form)
+
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

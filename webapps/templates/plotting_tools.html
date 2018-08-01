@@ -21,7 +21,7 @@
   <link id="theme-style" rel="stylesheet" href="static/styles.css" type="text/css">
 </head>
 
-
+<body>
 <section class="story-section section section-on-bg">
     <h2 class="title container text-center" style="background-color:#cc0000;">SuperDARN Plotting Tools</h2>
     <div class="story-container container text-center">
@@ -29,45 +29,99 @@
             <p> This web-page is used to gnerate various superDARN webtools for the Canadian Radar: Rankin Inlet, Saskatoon, Inuvet, Clyde River, and Prince George or from data provided by the user.
             </p>
         </div>
-        <div class="plotting button" id="plot-type">
+        <div class="plotting-buttons">
             <div class="container with-spacing">
                 <div class="row">
-                    <div class="col-sm-12 col-md-6 grew-bg">
-                        <div class="btn btn-group dropright">
-                            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="plot-type-label">plot type<i class="fa fa-arrow-circle-right" aria-hidden="true"></i>
-                            </button>
+                    <div class="col-sm-12 col-md-4 grey-bg">
+                        <div class="btn btn-group dropdown">
+                            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="plot-type-label">Plot Type<i class="fa fa-arrow-circle-right" aria-hidden="true"></i>
+                            </button> 
                             <div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; transform: translate3d(80px, 38px, 0px); top: 0px; left: 0px; will-change: transform;">
-                                <a class="dropdown-item " href="#">RTI</a>
-                                <a class="dropdown-item " href="#">Convection</a>
-                                <a class="dropdown-item " href="#">Fan</a>
+                                <span class="dropdown-item" id="plot-type"></span>
                             </div>
+                            <span class="plots-selected" id="plot-type-selected" value="RTI">RTI</span>
                         </div>
                     </div>
                 </div>
-                <form method=post action="" enctype="multipart/form-data">
-                        {% for field in form %}
-                        <div class="form-group row">
+            </div>
+        </div>
+
+                <form method=post action="" enctype="multipart/form-data" id="plot-rti">
+                        {% for field in rti_form %}
+                        <div class="form-group" id="plot-rti">
                             <div class="form-group mb-3">
-                                <div class="col-sm-10">
-                                    <span class="input-group" id="basic-addon">{{ field.label }} </span>
+                               <div class="col-sm-10">
+                                   {% if field.type == "BooleanField" %}
+                                        <div class="checkbox"> 
+                                            <label>{{ field(type_="checkbox")}}{{ field.label }}</label>
+                                        </div>
+                                    {% elif field.type == "SubmitField"  %}
+                                        {{ field(type_="submit", class_="btn btn-default") }}
+                                    {% else %}
+                                        <div class="input-group blue-bg">
+                                            <span class="input-group-addon" id="basic-addon">{{ field.label }} </span>
+                                            {{ field(class_="form-control", placeholder=field.description) }}
+                                        </div>        
+                                    {% endif %}
                                 </div>
-                                 {{ field(class_="form-control", placeholder=field.description) }}
-                            </div>
+                           </div> 
                         </div>
                         {% endfor %}
                 </form>
-            </div>
-        </div>
+                <form style="display: none" method=post action="" enctype="multipart/form-data" id="plot-convection">
+                        {% for field in convection_form %}
+                        <div class="form-group" id="plot-rti">
+                            <div class="form-group mb-3">
+                               <div class="col-sm-10">
+                                   {% if field.type == "BooleanField" %}
+                                        <div class="checkbox"> 
+                                            <label>{{ field(type_="checkbox")}}{{ field.label }}</label>
+                                        </div>
+                                    {% elif field.type == "SubmitField"  %}
+                                        {{ field(type_="submit", class_="btn btn-default") }}
+                                    {% else %}
+                                        <div class="input-group blue-bg">
+                                            <span class="input-group-addon" id="basic-addon">{{ field.label }} </span>
+                                            {{ field(class_="form-control", placeholder=field.description) }}
+                                        </div>        
+                                    {% endif %}
+                                </div>
+                           </div> 
+                        </div>
+                        {% endfor %}
+                </form>
+                 <form style="display: none" method=post action="" enctype="multipart/form-data" id="plot-fan">
+                        {% for field in fan_form %}
+                        <div class="form-group" id="plot-rti">
+                            <div class="form-group mb-3">
+                               <div class="col-sm-10">
+                                   {% if field.type == "BooleanField" %}
+                                        <div class="checkbox"> 
+                                            <label>{{ field(type_="checkbox")}}{{ field.label }}</label>
+                                        </div>
+                                    {% elif field.type == "SubmitField"  %}
+                                        {{ field(type_="submit", class_="btn btn-default") }}
+                                    {% else %}
+                                        <div class="input-group blue-bg">
+                                            <span class="input-group-addon" id="basic-addon">{{ field.label }} </span>
+                                            {{ field(class_="form-control", placeholder=field.description) }}
+                                        </div>        
+                                    {% endif %}
+                                </div>
+                           </div> 
+                        </div>
+                        {% endfor %}
+                </form>          
     </div>
 </section>
   <!-- Javascript -->
   <script type="text/javascript" src="static/jquery-3.2.1.min.js"></script>
-  <script type="text/javascript" src="static/plotting_tools.js"></script>
+  <script type="text/javascript" src="static/plotting-tools.js"></script>
   <script type="text/javascript" src="static/popper.min.js"></script>
   <script type="text/javascript" src="static/bootstrap.min.js"></script>
   <script type="text/javascript" src="static/back-to-top.js"></script>
   <script type="text/javascript" src="static/jquery.flexslider-min.js"></script>
   <script type="text/javascript" src="static/main.js"></script>
-
+</body>
 
 </html>
