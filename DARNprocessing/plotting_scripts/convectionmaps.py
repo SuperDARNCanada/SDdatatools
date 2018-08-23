@@ -344,8 +344,8 @@ class ConvectionMaps():
                               compressiontypes=RadarConst.COMPRESSION_TYPES)
             logging.error(msg)
             raise UnsupportedTypeException(msg)
-
         if not os.path.isfile(data_file):
+            print("Is not a file?")
             raise FileDoesNotExistException(data_file)
 
         # if the data file is not in data path then check in the
@@ -356,6 +356,7 @@ class ConvectionMaps():
         try:
             shutil.copy2(data_file, data_path)
         except shutil.Error as msg:
+            print(msg)
             logging.warn(msg)
             logging.warn("{datafile} was not found in the data_path:"
                          " {data_path} or plot_path: {plot_path},"
@@ -383,7 +384,9 @@ class ConvectionMaps():
                                       "".format(command=RadarConst.EXT[data_file_ext],
                                                 datapath=data_path)
                 call(compression_command, shell=True)
+                data_file = re.sub('.'+data_file_ext,'', data_file)
             except KeyError as err:
+                print(err)
                 logging.warn(err)
                 msg = "Error: The compression extension {compressionext} "\
                       "does not have a corresponding compression command"\
@@ -393,12 +396,11 @@ class ConvectionMaps():
                                 compression=RadarConst.EXT)
                 raise KeyError(msg)  # TODO: make a better exception for this case
 
-        data_file = re.sub('.'+data_file_ext,'', data_file)
         data_path = "{path}/{filename}"\
                 "".format(path=self.parameter['plot_path'],
                           filename=os.path.basename(data_file))
-
         if os.path.getsize(data_path) == 0:
+            print(data_path)
             logging.warn(EmptyDataFileWarning(data_file))
             self.radars_errors += data_file + '\n'
             raise RSTFileEmptyException(data_path)
@@ -406,7 +408,7 @@ class ConvectionMaps():
         dmapdump_command = "dmapdump {} | grep -c '\"scan\" = -1'"\
                            "".format(data_path)
 
-        grid_options = self.rst_options + ' -i ' + \
+        grid_options = ' -i ' + \
             str(self.parameter['integration_time'])
 
         # We need this try/except block because grep will return a non-zero
@@ -426,7 +428,7 @@ class ConvectionMaps():
         channelA = self._check_for_channel(data_path, 1)
         channelB = self._check_for_channel(data_path, 2)
         monochannel = self._check_for_channel(data_path, 0)
-
+        print(data_path)
         data_file = os.path.basename(data_path)
         if '.a.' in data_file:
             grid_options = grid_options + " -cn_fix a"
@@ -739,10 +741,7 @@ class ConvectionMaps():
         logging.info("Generating Convection Maps uring RST ")
         # TODO: A better method of importing the key file and
         # what to do when it is not provided
-        shutil.copy2("{}/rainbow.key".format(self.parameter['key_path']),
-                     self.parameter['plot_path'])
-        key_option = "-vkeyp -vkey_path {}/ -vkey rainbow.key"\
-                     "".format(self.parameter['plot_path'])
+        key_option = "-vkeyp -vkey rainbow.key"
         map_path = "{map_path}/{date}.map"\
                    "".format(map_path=self.parameter['map_path'],
                              date=self.parameter['date'])
@@ -796,7 +795,7 @@ class ConvectionMaps():
 
 if __name__ == '__main__':
     import sys
-    convec = ConvectionMaps(sys.argv[1:], 201803)
+    convec = ConvectionMaps(sys.argv[1:])
     # convec.setup_paths()
     convec.generate_grid_files()
     convec.generate_map_files()

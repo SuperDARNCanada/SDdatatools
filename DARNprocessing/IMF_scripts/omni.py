@@ -138,10 +138,11 @@ class Omni():
         except CalledProcessError as e:
             raise OmniException(e)
 
-        if "https" not in omnifile_url:
-            omnifile_url = omnifile_url.replace('http', 'https')
-
-        omnifile_url = omnifile_url.strip('\n')
+        if "https" not in str(omnifile_url):
+            omnifile_url = str(omnifile_url).replace('http', 'https')
+        omnifile_url = omnifile_url.strip("b'")
+        omnifile_url = omnifile_url.strip("\\n'")
+        print(omnifile_url)
         download_file_command = "curl {link} > {filename}"\
                                 "".format(link=omnifile_url,
                                           filename=self.omni_path)
