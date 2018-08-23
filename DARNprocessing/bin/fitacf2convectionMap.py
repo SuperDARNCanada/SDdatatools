@@ -17,8 +17,8 @@ class Fitacf2ConvectionMap(ConvectionMaps):
     Converts various radar fitacf data and user input options to convection maps.
 
     """
-        def __init__(self,arguments):
-            ConvectionMaps.__init__(self, arguments)
+    def __init__(self,arguments):
+        ConvectionMaps.__init__(self, arguments)
 
 if __name__ == '__main__':
     Fitacf2ConvectionMap(sys.argv[1:])
