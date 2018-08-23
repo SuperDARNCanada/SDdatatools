@@ -393,6 +393,11 @@ class ConvectionMaps():
                                 compression=RadarConst.EXT)
                 raise KeyError(msg)  # TODO: make a better exception for this case
 
+        data_file = re.sub('.'+data_file_ext,'', data_file)
+        data_path = "{path}/{filename}"\
+                "".format(path=self.parameter['plot_path'],
+                          filename=os.path.basename(data_file))
+
         if os.path.getsize(data_path) == 0:
             logging.warn(EmptyDataFileWarning(data_file))
             self.radars_errors += data_file + '\n'
@@ -506,9 +511,11 @@ class ConvectionMaps():
         logging.info(make_grid_command)
         try:
             check_rst_command(make_grid_command, grid_file)
+
         except RSTException as err:
             logging.warn(err)
             self.radars_errors += data_file + '\n'
+
         except RSTFileEmptyException as err:
             self.radars_errors += data_file + '\n'
             logging.warn(err)
