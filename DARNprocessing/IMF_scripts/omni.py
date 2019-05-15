@@ -142,14 +142,13 @@ class Omni():
             omnifile_url = str(omnifile_url).replace('http', 'https')
         omnifile_url = omnifile_url.strip("b'")
         omnifile_url = omnifile_url.strip("\\n'")
-        print(omnifile_url)
-        download_file_command = "curl {link} > {filename}"\
-                                "".format(link=omnifile_url,
-                                          filename=self.omni_path)
+        download_file_command = "curl -o {omni_file}"\
+                " {link}".format(link=omnifile_url,
+                                 omni_file=self.omni_path)
         logging.info(download_file_command)
 
         try:
-            call(download_file_command, shell=True)
+            call(download_file_command.split())
         except CalledProcessError as e:
             raise OmniFileNotGeneratedWarning(self.omni_filename,
                                               self.date)
@@ -207,3 +206,8 @@ class Omni():
         if bad_data_counter == len(omni_data_list):
             os.remove(self.imf_path)
             raise OmniBadDataWarning(self.date)
+
+
+if __name__ == '__main__':
+    omni = Omni("20180810", "./")
+    omni.get_omni_file()

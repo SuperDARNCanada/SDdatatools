@@ -405,6 +405,7 @@ class ConvectionMaps():
             self.radars_errors += data_file + '\n'
             raise RSTFileEmptyException(data_path)
 
+
         dmapdump_command = "dmapdump {} | grep -c '\"scan\" = -1'"\
                            "".format(data_path)
 
@@ -430,6 +431,9 @@ class ConvectionMaps():
         monochannel = self._check_for_channel(data_path, 0)
         print(data_path)
         data_file = os.path.basename(data_path)
+        data_file_ext = data_file_ext.split(".")[-1]
+        if data_file_ext == "fit":
+            grid_options = grid_options + " -old"
         if '.a.' in data_file:
             grid_options = grid_options + " -cn_fix a"
         elif '.b.' in data_file:
@@ -716,7 +720,13 @@ class ConvectionMaps():
                                          model_map=map_model_filename)
         check_rst_command(map_addmodel_command, map_model_path)
 
-        map_filename = "{date}.map".format(date=self.parameter['date'])
+        if self.parameter['hemisphere'] == 'south':
+            map_filename = "{date}.s.map".format(date=self.parameter['date'])
+        elif self.parameter['hemisphere'] == 'north':
+            map_filename = "{date}.n.map".format(date=self.parameter['date'])
+        else:
+            map_filename = "{date}.canadian.map".format(date=self.parameter['date'])
+
         map_path = "{plot_path}/{map_file}"\
                    "".format(plot_path=self.parameter['plot_path'],
                              map_file=map_filename)
