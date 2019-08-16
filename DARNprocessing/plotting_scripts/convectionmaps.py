@@ -413,10 +413,6 @@ class ConvectionMaps():
             self.radars_errors += data_file + '\n'
             raise RSTFileEmptyException(data_path)
 
-
-        dmapdump_command = "dmapdump {} | grep -c '\"scan\" = -1'"\
-                           "".format(data_path)
-
         grid_options = ' -i ' + \
             str(self.parameter['integration_time'])
 

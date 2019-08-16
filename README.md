@@ -1,6 +1,12 @@
+<!--- copyright (C) SuperDARN Canada, University of Saskatchewan
+      Author: Marina Schmidt 
+-->
+
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Python 2.7](https://img.shields.io/badge/python-2.7-blue.svg)](https://www.python.org/downloads/release/python-360/) [![GitHub version](https://badge.fury.io/gh/boennemann%2Fbadges.svg)](http://badge.fury.io/gh/boennemann%2Fbadges)
+
+
 SuperDARN data tools 
 =====================
-
 This python package provides modules that wrap around RST functions for users that wish to use python for scripting and for webapplication backends. 
 
 The following RST methods that are implemented: 
@@ -30,7 +36,7 @@ Future developement will include wrappers for this as well.
 ## Installation 
 Running the following command to install the python package:
     
-    sudo python setup.py install 
+    python setup.py install --user
 
 ## Example code 
 Using the module to generate convection plots:
@@ -52,8 +58,14 @@ Using the module to generate convection plots:
     convec_map.cleanup()
 
 Using an installed script:
-    
+
+To generate convection plots:     
     fitacf2convectionMap.py --image-extension png --datapath /data/fitcon/2016/01/ -p /home/schmidt/2016/01/north/ 20160101
+To generate convection map files:
+    fitdata2map.py -m /data/map/2016/01/ 
+
+To get information on all possible options use `--help`
+    fitdata2map.py --help
 
 
 ## Developement 
