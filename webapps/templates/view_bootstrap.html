@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<link href=
+"http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"
+rel="stylesheet">
+<!--
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  TeX: {
+     equationNumbers: {  autoNumber: "AMS"  },
+     extensions: ["AMSmath.js", "AMSsymbols.js", "autobold.js", "color.js"]
+  }
+});
+</script>
+<script type="text/javascript" src=
+"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+-->
+<!--
+<nav class="navbar navbar-default" role="navigation">
+<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+    <ul class="nav navbar-nav">
+       {% for text, url in some_sequence %}
+       <li><a href="/{{url}}">{{ text }}</a></li>
+       {% endfor %}
+       </ul>
+</div>
+</nav>
+-->
+
+<h2>SuperDARN Plotting Tool</h2>
+
+This web-page is used to generate various SuperDARN webtools for Canadian Radar:
+- Rankin Inlet
+- Clyde River
+- Prince George
+- Saskatoon 
+- Inuvet
+or provided data files from the user. 
+
+<p>
+<nav class="navbar navbar-light bg-light">
+<form class="form-inline" method="post" action="">
+    <div class="row">
+        <div class="form-group col-sm-4">
+            <button class="btn btn-outline-secondary" type="button">RTI plots</button>
+        </div>
+        <div class="form-group col-sm-6">
+                <button class="btn btn-outline-secondary" type="button">Convection plots</button>
+        </div>
+        <div class="form-group col-sm-2">
+            <button class="btn btn-outline-secondary" type="button">Fan plots</button>
+        </div>
+    </div>
+    <br/>    
+    {% for field in form %}
+        <div class="row">
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <span  class="input-group-addon"> {{ field.name }} </span>
+            </div>
+            {{ field(class_="form-control", placeholder=field.description) }}
+        </div>
+        </div>
+    {% endfor %}
+<br/>
+<input type="submit" value="Compute" class="btn btn-default">
+</form>
+</nav>
+<p>
+{% if result != None %}
+<img src="{{ result }}" width="400">
+{% endif %}
+</html>
