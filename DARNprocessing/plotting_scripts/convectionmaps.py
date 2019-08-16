@@ -146,6 +146,11 @@ class ConvectionMaps():
                               " (not used in the Convection Map process):\n"
         self.radars_errors = "Radars files that raised errors:\n"
 
+        if self.parameter['hemisphere'] == 'south':
+            self.hem_ext = 's'
+        else:
+            self.hem_ext = 'n'
+
     # TODO: Look for more possible options to add here for changing convection maps
     def arguement_parser(self, arguements):
         """
@@ -370,9 +375,12 @@ class ConvectionMaps():
                       " provide data path using -d option and that the"\
                       " file exist in the folder".format(datafile=data_file)
             raise OSError(message)  # TODO: better exception?
+
         # Standard naming convention for grid files
-        grid_filename = "{date}.{abbrv}.grid".format(date=self.parameter['date'],
-                                                     abbrv=radar_abbrv)
+        grid_filename = "{date}.{abbrv}.{hemisphere}."\
+                "grid".format(date=self.parameter['date'],
+                              abbrv=radar_abbrv,
+                              hemisphere=self.hem_ext)
 
         grid_path = "{data_path}/{grid_file}"\
                     "".format(data_path=self.parameter['plot_path'],
@@ -412,26 +420,13 @@ class ConvectionMaps():
         grid_options = ' -i ' + \
             str(self.parameter['integration_time'])
 
-        # We need this try/except block because grep will return a non-zero
-        # exit value even if there is no error, example) if there is no match
-        # it will return 1
-        # check_output will throw an exception on non-zero return values
-        try:
-            neg_scan_flag = check_output(dmapdump_command, shell=True)
-        except CalledProcessError as e:
-            neg_scan_flag = e.output  # Gets the output of the command
-        # Hopefully in the near RST future this situation
-        # would be handled more gracefully
-        if int(neg_scan_flag) > 0:
-            # TODO: this may not be needed in the newest version of RST
-            grid_options += "-tl 60 "
-
         channelA = self._check_for_channel(data_path, 1)
         channelB = self._check_for_channel(data_path, 2)
         monochannel = self._check_for_channel(data_path, 0)
         print(data_path)
         data_file = os.path.basename(data_path)
         data_file_ext = data_file_ext.split(".")[-1]
+
         if data_file_ext == "fit":
             grid_options = grid_options + " -old"
         if '.a.' in data_file:
@@ -443,45 +438,50 @@ class ConvectionMaps():
         elif '.d.' in data_file:
             grid_options = grid_options + " -cn_fix d"
         elif self.parameter['channel'] == 0:
-                grid_path = "{plot_path}/{date}.{abbrv}."\
+                grid_path = "{plot_path}/{date}.{abbrv}.{hemisphere}."\
                             "grid".format(date=self.parameter["date"],
                                           plot_path=self.parameter['plot_path'],
-                                          abbrv=radar_abbrv)
+                                          abbrv=radar_abbrv,
+                                          hemisphere=self.hem_ext)
         elif self.parameter['channel'] == 1:
-                grid_path = "{plot_path}/{date}.{abbrv}.a."\
+                grid_path = "{plot_path}/{date}.{abbrv}.a.{hemisphere}."\
                             "grid".format(date=self.parameter["date"],
                                           plot_path=self.parameter['plot_path'],
-                                          abbrv=radar_abbrv)
+                                          abbrv=radar_abbrv,
+                                          hemisphere=self.hem_ext)
                 grid_options = grid_options + " -cn A"
         elif self.parameter['channel'] == 2:
-                grid_path = "{plot_path}/{date}.{abbrv}.b."\
+                grid_path = "{plot_path}/{date}.{abbrv}.b.{hemisphere}."\
                             "grid".format(date=self.parameter["date"],
                                           plot_path=self.parameter['plot_path'],
-                                          abbrv=radar_abbrv)
+                                          abbrv=radar_abbrv,
+                                          hemisphere=self.hem_ext)
                 grid_options = grid_options + " -cn B"
         else:
-            if monochannel > 0:
-                grid_path = "{plot_path}/{date}.{abbrv}."\
-                            "grid".format(date=self.parameter["date"],
-                                          plot_path=self.parameter['plot_path'],
-                                          abbrv=radar_abbrv)
-                self.make_grid(data_path, grid_path, grid_options)
-
-            if channelA > 0:
-                grid_path = "{plot_path}/{date}.{abbrv}.a."\
-                            "grid".format(date=self.parameter["date"],
-                                          plot_path=self.parameter['plot_path'],
-                                          abbrv=radar_abbrv)
-                grid_optionsA = grid_options + " -cn A"
-                self.make_grid(data_path, grid_path, grid_optionsA)
-
             if channelB > 0:
-                grid_path = "{plot_path}/{date}.{abbrv}.b."\
+                grid_path = "{plot_path}/{date}.{abbrv}.b.{hemisphere}."\
                             "grid".format(date=self.parameter["date"],
                                           plot_path=self.parameter['plot_path'],
-                                          abbrv=radar_abbrv)
+                                          abbrv=radar_abbrv,
+                                          hemisphere=self.hem_ext)
                 grid_optionsB = grid_options + " -cn B"
                 self.make_grid(data_path, grid_path, grid_optionsB)
+ 
+            if channelA > 0:
+              grid_path = "{plot_path}/{date}.{abbrv}.a.{hemisphere}."\
+                          "grid".format(date=self.parameter["date"],
+                                        plot_path=self.parameter['plot_path'],
+                                        abbrv=radar_abbrv,
+                                        hemisphere=self.hem_ext)
+              grid_optionsA = grid_options + " -cn A"
+              self.make_grid(data_path, grid_path, grid_optionsA)
+            elif monochannel > 0:
+                grid_path = "{plot_path}/{date}.{abbrv}.{hemisphere}."\
+                            "grid".format(date=self.parameter["date"],
+                                          plot_path=self.parameter['plot_path'],
+                                          abbrv=radar_abbrv,
+                                          hemisphere=self.hem_ext)
+                self.make_grid(data_path, grid_path, grid_options)
             return 0
 
         self.make_grid(data_path, grid_path, grid_options)
@@ -591,17 +591,19 @@ class ConvectionMaps():
             logging.error(NoGridFilesException)
             raise NoGridFilesException(radar_abbrv)
 
-        grd_filename = "{date}.grd".format(date=self.parameter['date'])
+        grd_filename = "{date}.{hemisphere}.grd".format(date=self.parameter['date'],
+                                                        hemisphere=self.hem_ext)
         grd_path = "{plot_path}/{grd_file}"\
                    "".format(plot_path=self.parameter['plot_path'],
                              grd_file=grd_filename)
 
-        combine_grid_command = "combine_grid {options} {plot_path}/{date}.*.grid"\
-                               " > {grdpath}"\
+        combine_grid_command = "combine_grid {options} {plot_path}/{date}."\
+                               "*.{hemisphere}.grid  > {grdpath}"\
                                "".format(options=self.rst_options,
                                          plot_path=self.parameter['plot_path'],
                                          date=self.parameter['date'],
-                                         grdpath=grd_path)
+                                         grdpath=grd_path,
+                                         hemisphere=self.hem_ext)
 
         check_rst_command(combine_grid_command, grd_path)
 
@@ -616,26 +618,32 @@ class ConvectionMaps():
         if self.parameter['hemisphere'] == "south":
             map_grd_options = self.rst_options + " -sh"
 
-        grd_path = "{plot_path}/{date}.grd"\
+        grd_path = "{plot_path}/{date}.{hemisphere}.grd"\
                    "".format(plot_path=self.parameter['plot_path'],
-                             date=self.parameter['date'])
+                             date=self.parameter['date'],
+                             hemisphere=self.hem_ext)
         file_exists(grd_path)
-        empty_map_filename = "{date}.empty.map"\
-                             "".format(date=self.parameter['date'])
+        empty_map_filename = "{date}.{hemisphere}.empty.map"\
+                             "".format(date=self.parameter['date'],
+                                       hemisphere=self.hem_ext)
         empty_map_path = "{plot_path}/{empty_map}"\
                          "".format(plot_path=self.parameter['plot_path'],
                                    empty_map=empty_map_filename)
 
-        map_grd_command = "map_grd {options} -l 50 {plot_path}/{date}.grd > "\
+        map_grd_command = "map_grd {options} -l 50 "\
+                          "{plot_path}/{date}.{hemisphere}.grd > "\
                           "{plot_path}/{filename}"\
                           "".format(options=map_grd_options,
                                     plot_path=self.parameter['plot_path'],
                                     date=self.parameter['date'],
-                                    filename=empty_map_filename)\
+                                    filename=empty_map_filename,
+                                    hemisphere=self.hem_ext)
 
         check_rst_command(map_grd_command, empty_map_path)
 
-        hmb_map_filename = "{date}.hmb.map".format(date=self.parameter['date'])
+        hmb_map_filename = "{date}.{hemisphere}.hmb.map"\
+                "".format(date=self.parameter['date'],
+                          hemisphere=self.hem_ext)
         hmb_map_path = "{plot_path}/{hmb_map}"\
                        "".format(plot_path=self.parameter['plot_path'],
                                  hmb_map=hmb_map_filename)
@@ -672,8 +680,9 @@ class ConvectionMaps():
 
             omni.omnifile_to_IMFfile()
 
-            imf_map_filename = "{date}.imf.map"\
-                               "".format(date=self.parameter['date'])
+            imf_map_filename = "{date}.{hemisphere}.imf.map"\
+                               "".format(date=self.parameter['date'],
+                                         hemisphere=self.hem_ext)
             imf_map_path = "{map_path}/{imf_map}"\
                            "".format(map_path=self.parameter['map_path'],
                                      imf_map=imf_map_filename)
@@ -706,8 +715,9 @@ class ConvectionMaps():
             self._imf_option = ""
             input_model_file = hmb_map_filename
 
-        map_model_filename = "{date}.model.map"\
-                             "".format(date=self.parameter['date'])
+        map_model_filename = "{date}.{hemisphere}.model.map"\
+                             "".format(date=self.parameter['date'],
+                                       hemisphere=self.hem_ext)
         map_model_path = "{plot_path}/{map_model}"\
                          "".format(plot_path=self.parameter['plot_path'],
                                    map_model=map_model_filename)
@@ -794,13 +804,15 @@ class ConvectionMaps():
                                            date=self.parameter['date'])
 
         for f in glob(path+'*.grid'):
-            os.remove(f)
+                os.remove(f)
         for f in glob(path+'*.map'):
             os.remove(f)
         for ext in RadarConst.FILE_TYPE:
             for f in glob('{path}*.{ext}*'.format(path=path, ext=ext)):
                 os.remove(f)
-        os.remove(path + ".grd")
+
+        for f in glob(path + "*.grd"):
+            os.remove(f)
 
 
 if __name__ == '__main__':

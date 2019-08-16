@@ -65,7 +65,7 @@ class RadarConst():
         radar acronym changes.
 
     """
-    FILE_TYPE = ['fit', 'lmfit2', 'fitacf']
+    FILE_TYPE = ['fitacf']
     COMPRESSION_TYPES = ['gz', 'bz2']
     EXT = {'gz': 'gzip -df',
            'bz2': 'bzip2 -dfv'}
@@ -109,8 +109,7 @@ class SouthRadar():
                    'hal', 'ker', 'san',
                    'sye', 'sys', 'tig',
                    'unw', 'zho', 'mcm',
-                   'sps', 'h', 'j', 'd',
-                   'n', 'p', 'r', 'u']
+                   'sps']
 
     # TODO: delete? may not be needed
     CHANNEL_ONE_ABBRV = ['mcm.a', 'sps.a']
@@ -177,9 +176,7 @@ class NorthRadar():
                    'lyr', 'pyk', 'pgr',
                    'rkn', 'sas', 'sch',
                    'sto', 'wal', 'ksr',
-                   'kod', 'g', 'k', 't',
-                   'w', 'f', 'e', 'a',
-                   'b', 'c']
+                   'kod']
     CHANNEL_ONE_ABBRV = ['ksr.a', 'ade.a', 'adw.a']
     CHANNEL_TWO_ABBRV = ['ksr.b', 'ade.b', 'adw.b']
     CHANNEL_THREE_ABBRV = ['kod.c']
