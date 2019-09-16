@@ -171,6 +171,7 @@ class ConvectionMaps():
                         ('-l', '--logfile'),
                         #('-f','--data-format'),  maybe something to add in the future?
                         ('-d', '--data-path'),
+                        ('-f', '--imf-path'),
                         ('-p', '--plot-path'),
                         ('-m', '--map-path'),
                         ('-k', '--key-path'),
@@ -219,6 +220,11 @@ class ConvectionMaps():
                             'default': self._current_path,
                             'help': 'The absolute path to the fitted data.'
                             ' Default: {}'.format(self._current_path)},
+                           {'type': str,
+                            'metavar': 'PATH',
+                            'default': self._current_path,
+                            'help': 'The absolute path to the imf data'
+                            'default: {}'.format(self._current_path)},
                            {'type': str,
                             'metavar': 'PATH',
                             'default': self._current_path,
@@ -376,6 +382,7 @@ class ConvectionMaps():
                       " file exist in the folder".format(datafile=data_file)
             raise OSError(message)  # TODO: better exception?
 
+        grid_options = ''
         # Standard naming convention for grid files
         grid_filename = "{date}.{abbrv}.{hemisphere}."\
                 "grid".format(date=self.parameter['date'],
@@ -402,29 +409,35 @@ class ConvectionMaps():
                       " implmented compressions types {compression}"\
                       "".format(compresionext=data_file_ext,
                                 compression=RadarConst.EXT)
-                raise KeyError(msg)  # TODO: make a better exception for this case
-
-        data_path = "{path}/{filename}"\
-                "".format(path=self.parameter['plot_path'],
-                          filename=os.path.basename(data_file))
-        if os.path.getsize(data_path) == 0:
+                raise KeyError(msg)  # TODO: make a better exception for this case 
+        data_filename = os.path.basename(data_file)
+        data_file = '{path}/{data_filename}'.format(path=self.parameter['plot_path'],
+                                                    data_filename=data_filename)
+        logging.info(data_file)
+        if os.path.getsize(data_file) == 0:
             print(data_path)
             logging.warn(EmptyDataFileWarning(data_file))
             self.radars_errors += data_file + '\n'
-            raise RSTFileEmptyException(data_path)
+            raise RSTFileEmptyException(data_file)
 
-        grid_options = ' -i ' + \
+        data_filename = os.path.basename(data_file)
+        logging.info(data_filename)
+        if 'C0' not in data_file:
+            data_path = "{path}/{date}.*.{radar}.fitacf"\
+                    "".format(path=self.parameter['plot_path'],
+                              date=self.parameter['date'],
+                              radar=radar_abbrv)
+            grid_options += ' -c'
+
+        grid_options += ' -i ' + \
             str(self.parameter['integration_time'])
 
-        channelA = self._check_for_channel(data_path, 1)
-        channelB = self._check_for_channel(data_path, 2)
-        monochannel = self._check_for_channel(data_path, 0)
-        print(data_path)
-        data_file = os.path.basename(data_path)
+        channelA = self._check_for_channel(data_file, 1)
+        channelB = self._check_for_channel(data_file, 2)
+        monochannel = self._check_for_channel(data_file, 0)
+        logging.info(data_file)
         data_file_ext = data_file_ext.split(".")[-1]
 
-        if data_file_ext == "fit":
-            grid_options = grid_options + " -old"
         if '.a.' in data_file:
             grid_options = grid_options + " -cn_fix a"
         elif '.b.' in data_file:
@@ -461,7 +474,7 @@ class ConvectionMaps():
                                           abbrv=radar_abbrv,
                                           hemisphere=self.hem_ext)
                 grid_optionsB = grid_options + " -cn B"
-                self.make_grid(data_path, grid_path, grid_optionsB)
+                self.make_grid(data_file, grid_path, grid_optionsB)
  
             if channelA > 0:
               grid_path = "{plot_path}/{date}.{abbrv}.a.{hemisphere}."\
@@ -470,17 +483,17 @@ class ConvectionMaps():
                                         abbrv=radar_abbrv,
                                         hemisphere=self.hem_ext)
               grid_optionsA = grid_options + " -cn A"
-              self.make_grid(data_path, grid_path, grid_optionsA)
+              self.make_grid(data_file, grid_path, grid_optionsA)
             elif monochannel > 0:
                 grid_path = "{plot_path}/{date}.{abbrv}.{hemisphere}."\
                             "grid".format(date=self.parameter["date"],
                                           plot_path=self.parameter['plot_path'],
                                           abbrv=radar_abbrv,
                                           hemisphere=self.hem_ext)
-                self.make_grid(data_path, grid_path, grid_options)
+                self.make_grid(data_file, grid_path, grid_options)
             return 0
 
-        self.make_grid(data_path, grid_path, grid_options)
+        self.make_grid(data_file, grid_path, grid_options)
         return 0
 
     # Maybe move this function to utils?
@@ -501,7 +514,7 @@ class ConvectionMaps():
 
     def make_grid(self, data_file, grid_file, grid_options=""):
         make_grid_command = "make_grid {gridoptions} -xtd"\
-                            " -i {integration_time} -minrng 2"\
+                            " -minrng 10"\
                             " -vemax {max_velocity}"\
                             " {datafile} > {gridpath}"\
                             "".format(gridoptions=grid_options,
@@ -538,7 +551,7 @@ class ConvectionMaps():
         else:
             radar_abbrv = NorthRadar.SINGLE_TO_ABBRV[radar_letter]
 
-        fitacf_path = "{plot_path}/{date}.C0.{abbrv}."\
+        fitacf_path = "{plot_path}/{date}.*.{abbrv}."\
                       "fitacf".format(date=self.parameter['date'],
                                       abbrv=radar_abbrv,
                                       plot_path=self.parameter['plot_path'])
@@ -653,63 +666,74 @@ class ConvectionMaps():
 
         check_rst_command(map_addhmb_command, hmb_map_path)
 
-        omni = Omni(self.parameter['date'], self.parameter['map_path'])
+        imf_filename = '{imf_path}/{date}_imf.txt'.format(imf_path=self.parameter['imf_path'],
+                                                          date=self.parameter['date'])
+        imf_map_filename = "{date}.{hemisphere}.imf.map"\
+                           "".format(date=self.parameter['date'],
+                                     hemisphere=self.hem_ext)
+        imf_map_path = "{map_path}/{imf_map}"\
+                       "".format(map_path=self.parameter['map_path'],
+                                 imf_map=imf_map_filename)
 
-        try:
-            update = omni.check_for_updates()
-            if update:
-                old_omni_file = "{map_path}/{date}_omni_{currentdate}.txt"\
-                                "".format(date=self.parameter['date'],
-                                          currentdate=self._current_date.strftime("%Y%m%d"))
-                try:
-                    shutil.move(omni.omni_path, old_omni_file)
-                except IOError as err:
-                    logging.exception(err)
-                    pass
-        except OmniFileNotFoundWarning as warning_msg:
-            logging.warn(warning_msg)
-            update = True
 
-        try:
-            if update:
-                omni.get_omni_file()
+        if not os.path.exists(imf_filename):
+            omni = Omni(self.parameter['date'], self.parameter['map_path'])
 
-            omni.omnifile_to_IMFfile()
+            try:
+                update = omni.check_for_updates()
+                if update:
+                    old_omni_file = "{map_path}/{date}_omni_{currentdate}.txt"\
+                                    "".format(date=self.parameter['date'],
+                                              currentdate=self._current_date.strftime("%Y%m%d"))
+                    try:
+                        shutil.move(omni.omni_path, old_omni_file)
+                    except IOError as err:
+                        logging.exception(err)
+                        pass
+            except OmniFileNotFoundWarning as warning_msg:
+                logging.warn(warning_msg)
+                update = True
 
-            imf_map_filename = "{date}.{hemisphere}.imf.map"\
-                               "".format(date=self.parameter['date'],
-                                         hemisphere=self.hem_ext)
-            imf_map_path = "{map_path}/{imf_map}"\
-                           "".format(map_path=self.parameter['map_path'],
-                                     imf_map=imf_map_filename)
+            try:
+                if update:
+                    omni.get_omni_file()
 
-            map_addimf_command = "map_addimf {options} -omni -d 00:10"\
-                                 " -if {map_path}/{imf_filename}"\
-                                 " {plot_path}/{hmb_map} >"\
-                                 " {plot_path}/{imf_map}"\
-                                 "".format(options=self.rst_options,
-                                           map_path=self.parameter['map_path'],
-                                           plot_path=self.parameter['plot_path'],
-                                           imf_filename=omni.imf_filename,
-                                           hmb_map=hmb_map_filename,
-                                           imf_map=imf_map_filename)
+                omni.omnifile_to_IMFfile()
 
-            check_rst_command(map_addimf_command, imf_map_path)
-            self._imf_option = " -imf"
-            input_model_file = imf_map_filename
+                imf_filename = '{map_path}/{imf_file}'.format(map_path=self.parameter['map_path'],
+                                                              imf_file=omni.imf_filename)
 
-        except OmniException as err_msg:
-            logging.error(err_msg)
-            self._imf_option = ""
-            input_model_file = hmb_map_filename
 
-        except (OmniFileNotGeneratedWarning,
-                OmniFileNotFoundWarning,
-                OmniBadDataWarning) \
-                as warning_msg:
-            logging.warn(warning_msg)
-            self._imf_option = ""
-            input_model_file = hmb_map_filename
+            except OmniException as err_msg:
+                logging.error(err_msg)
+                self._imf_option = ""
+                input_model_file = hmb_map_filename
+
+            except (OmniFileNotGeneratedWarning,
+                    OmniFileNotFoundWarning,
+                    OmniBadDataWarning) \
+                    as warning_msg:
+                logging.warn(warning_msg)
+                self._imf_option = ""
+                input_model_file = hmb_map_filename
+
+
+
+        map_addimf_command = "map_addimf {options} -omni -d 00:10"\
+                             " -if {imf_file}"\
+                             " {plot_path}/{hmb_map} >"\
+                             " {plot_path}/{imf_map}"\
+                             "".format(options=self.rst_options,
+                                       map_path=self.parameter['map_path'],
+                                       plot_path=self.parameter['plot_path'],
+                                       imf_file=imf_filename,
+                                       hmb_map=hmb_map_filename,
+                                       imf_map=imf_map_filename)
+
+        check_rst_command(map_addimf_command, imf_map_path)
+        self._imf_option = " -imf"
+        input_model_file = imf_map_filename
+
 
         map_model_filename = "{date}.{hemisphere}.model.map"\
                              "".format(date=self.parameter['date'],
