@@ -176,8 +176,12 @@ class NorthRadar():
                    'lyr', 'pyk', 'pgr',
                    'rkn', 'sas', 'sch',
                    'sto', 'wal', 'ksr',
-                   'kod']
-    CHANNEL_ONE_ABBRV = ['ksr.a', 'ade.a', 'adw.a']
+                   'kod', 'kod.a', 'kod.b', 'kod.c', 'kod.d', 
+                   'adw.a', 'adw.b', 'adw.c', 'adw.d',
+                   'ade.a', 'ade.b', 'ade.c', 'ade.d'
+                   'ksr.a', 'ksr.b', 'ksr.c', 'ksr.d']
+
+    CHANNEL_ONE_ABBRV = ['ksr.a',  'ade.a', 'adw.a']
     CHANNEL_TWO_ABBRV = ['ksr.b', 'ade.b', 'adw.b']
     CHANNEL_THREE_ABBRV = ['kod.c']
     CHANNEL_FOUR_ABBRV = ['kod.d']
