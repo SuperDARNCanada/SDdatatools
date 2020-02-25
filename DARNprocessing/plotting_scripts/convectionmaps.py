@@ -85,6 +85,7 @@ class ConvectionMaps():
                 'plot_path': self._current_path,
                 'map_path': self._current_path,
                 'grid_path': self._current_path,
+                'imf_path': self._current_path,
                 'key_path': self._current_path,
                 'num_proc': 1
 
@@ -111,6 +112,7 @@ class ConvectionMaps():
                               'plot_path': self._current_path,
                               'map_path': self._current_path,
                               'grid_path': self._current_path,
+                              'imf_path': self._current_path,
                               'key_path': self._current_path,
                               'num_proc': 1}
 
@@ -425,7 +427,7 @@ class ConvectionMaps():
                                           hemisphere=self.hem_ext)
                 grid_optionsB = grid_options + " -cn B"
                 self.make_grid(data_file, grid_path, grid_optionsB)
- 
+
             if channelA > 0:
               grid_path = "{plot_path}/{date}.{abbrv}.a.{hemisphere}."\
                           "grid".format(date=self.parameter["date"],
@@ -468,6 +470,7 @@ class ConvectionMaps():
                             " -vemax {max_velocity}"\
                             " {datafile} > {gridpath}"\
                             "".format(gridoptions=grid_options,
+                                      date=self.parameter['date'],
                                       integration_time=self.parameter['integration_time'],
                                       max_velocity=RstConst.VEMAX,
                                       datafile=data_file,
