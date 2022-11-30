@@ -2,32 +2,33 @@
 
 # Copyright 2017 SuperDARN Canada
 #
-# Marina Schmidt
+# Author: Marina Schmidt
+# Date: 2018-01-26
 #
-# fitacf2convectionMap.py
-# 2018-01-26
+# Modifications:
+# 20221129 : CJM : Updates and review comments
+
 
 from __future__ import print_function
 
 import logging
 import shutil
 import os
+import subprocess as sp
 import re
 
 from datetime import datetime
-from subprocess import call, check_output, CalledProcessError
 from glob import glob
 
 from DARNprocessing.utils.utils import (file_exists,
                                         check_rst_command,
-                                        flag_options,
+                                        parse_command_line_args,
                                         path_exists)
 
 from DARNprocessing.utils.convectionMapConstants import (NorthRadar,
                                                          SouthRadar,
-                                                         CanadianRadar,
                                                          RstConst,
-                                                         RadarConst)
+                                                         FileConst)
 
 from DARNprocessing.utils.convectionMapWarnings import (ConvertWarning,
                                                         OmniFileNotFoundWarning,
@@ -64,15 +65,15 @@ class ConvectionMaps():
     * Currently not implemented *
     """
 
-    def __init__(self, arguements=None, parameters=None):
+    def __init__(self, arguments=None, parameters=None):
         """
         Reads in user command line options and parses them to correct member
         fields.
 
-        :param arguements: sys.args from command line
+        :param arguments: sys.args from command line
         :param parameters: Dictionary of the command line arguements; used for testing or
                python scripts
-                key name: defualt value
+                key name: default value
                 -----------------------
                 'date': None,
                 'channel': 5,
@@ -80,7 +81,7 @@ class ConvectionMaps():
                 'start_time': '00:00',
                 'end_time': 23:59,
                 'image_ext': 'pdf',
-                'integration_time': 120,
+                'integration_time': 120, in seconds
                 'data_path': self._current_path,
                 'plot_path': self._current_path,
                 'map_path': self._current_path,
@@ -97,7 +98,7 @@ class ConvectionMaps():
         self._current_path = os.getcwd()
 
         if not parameters:
-            self.arguement_parser(arguements)
+            self.create_command_line_args(arguments)
         else:
             self.parameter = {'date': None,
                               'channel': 5,
@@ -119,15 +120,15 @@ class ConvectionMaps():
             self.parameter.update(parameters)
             # Required field
             if not self.parameter['date']:
-                raise ValueError("Date of the date was not passed in, please"
+                raise ValueError("Date was not passed in, please"
                                  "include in the parameters dictionary")
         
         if self.parameter['hemisphere'] == 'north':
             hemisphere_identifier = 'n'
-        elif self.parameter['hemisphere'] == 'sputh':
+        elif self.parameter['hemisphere'] == 'south':
             hemisphere_identifier = 's'
         else:
-            hemispher_identifier = 'c'
+            hemisphere_identifier = 'c'
         self.parameter.update({'logfile': '{path}/{date}_map.{hemisphere}.log'.format(path=self.parameter['logpath'],
                                                                                       date=self.parameter['date'],
                                                                                       hemisphere=hemisphere_identifier)})
@@ -135,12 +136,11 @@ class ConvectionMaps():
         # check if the data path exists otherwise we cannot porceed.
         path_exists(self.parameter['data_path'])
 
-        # the possible letter channels that a fitted file names can contain
-        # that pertains to the stero channel value. Most used by alaskian radars.
-        self.channel = ['', 'a', 'b', 'c', 'd']
+        # possible letters used for channel names - TODO: allow any char
+        self.channel = ['', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 
         # Logging information setup
-        FORMAT = "%(levelname)s %(asctime)-15s: %(message)s"
+        FORMAT = "%(levelname)s %(asctime): %(message)s"
         logging.basicConfig(filename=self.parameter['logfile'],
                             format=FORMAT,
                             level=logging.DEBUG)
@@ -152,11 +152,8 @@ class ConvectionMaps():
         # TODO clean up rst options and make it a requirement to use only rst 4.0 and higher
         self.rst_options = ""
 
-        # Logging information on radars used, missing and ones the gave errors
-        # during gridding process
-        self.radars_used = "Radar files uses in the Convection Map process:\n"
-        self.radars_missing = "Radar files missing"\
-                              " (not used in the Convection Map process):\n"
+        # Logging information on radars used, and radars that gave errors
+        self.radars_used = "Radar files used in map file production:\n"
         self.radars_errors = "Radars files that raised errors:\n"
 
         if self.parameter['hemisphere'] == 'south':
@@ -165,12 +162,12 @@ class ConvectionMaps():
             self.hem_ext = 'n'
 
     # TODO: Look for more possible options to add here for changing convection maps
-    def arguement_parser(self, arguements):
+    def create_command_line_args(self, arguments):
         """
-        Arguement parser - parses the arguement passed into the script into a
+        Argument parser - parses the argument passed into the script into a
                     parameter dictionary.
 
-            :param arguements: sys.args
+            :param arguments: sys.args
         """
 
         # Note: -h is reserved for --help feature thus -H for hemisphere
@@ -265,7 +262,7 @@ class ConvectionMaps():
                             " Default: {}".format(self._current_path)},
                            {'action': 'store_true',
                             'help': 'Turns on verbose mode.'}]
-        self.parameter = flag_options('fitacf2convectionmap',
+        self.parameter = parse_command_line_args('convectionmaps',
                                       'Converts fitted data files to convection maps',
                                       option_names,
                                       option_settings)
@@ -351,7 +348,7 @@ class ConvectionMaps():
         generation process.
 
             :param radar_abbrv: 3 letter acroynm of the radar
-            :param data_file: str fitted data file name with extension
+            :param data_file: str fitted data file name with full extension
             :raise ValueError: if the radar abbrevation is not in the data file
                                name which means it could be generating the wrong
                                grid file.
@@ -374,14 +371,16 @@ class ConvectionMaps():
                               abbrv=radar_abbrv,
                               hemisphere=self.hem_ext)
 
-        grid_path = "{data_path}/{grid_file}"\
-                    "".format(data_path=self.parameter['plot_path'],
+        grid_path = "{plot_path}/{grid_file}"\
+                    "".format(plot_path=self.parameter['plot_path'],
                               grid_file=grid_filename)
 
         result = 0
-        grid_options += '-c -tl 60 -i ' + \
+        grid_options += '-c -tl 120 -i ' + \
             str(self.parameter['integration_time'])
 
+        # TODO: More than 2 channels in files but in general we're using all
+        # channels or just the first one for map production.
         channelA = 0
         channelB = 0
         monochannel = 0
@@ -390,34 +389,32 @@ class ConvectionMaps():
             channelB += self._check_for_channel(filename, 2)
             monochannel += self._check_for_channel(filename, 0)
 
-        if '.a.' in data_file:
-            grid_options = grid_options + " -cn_fix a"
-        elif '.b.' in data_file:
-            grid_options = grid_options + " -cn_fix a"
-        elif '.c.' in data_file:
-            grid_options = grid_options + " -cn_fix c"
-        elif '.d.' in data_file:
-            grid_options = grid_options + " -cn_fix d"
-        elif self.parameter['channel'] == 0:
-                grid_path = "{plot_path}/{date}.{abbrv}.{hemisphere}."\
-                            "grid".format(date=self.parameter["date"],
-                                          plot_path=self.parameter['plot_path'],
-                                          abbrv=radar_abbrv,
-                                          hemisphere=self.hem_ext)
+        #TODO: Unlimited channels chars
+        chans = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+        for chan in chans:
+            if '.{}.'.format(chan) in data_file:
+                grid_options = grid_options + " -cn_fix {}".format(chan)
+        
+        if self.parameter['channel'] == 0:
+            grid_path = "{plot_path}/{date}.{abbrv}.{hemisphere}."\
+                        "grid".format(date=self.parameter["date"],
+                                      plot_path=self.parameter['plot_path'],
+                                      abbrv=radar_abbrv,
+                                      hemisphere=self.hem_ext)
         elif self.parameter['channel'] == 1:
-                grid_path = "{plot_path}/{date}.{abbrv}.a.{hemisphere}."\
-                            "grid".format(date=self.parameter["date"],
-                                          plot_path=self.parameter['plot_path'],
-                                          abbrv=radar_abbrv,
-                                          hemisphere=self.hem_ext)
-                grid_options = grid_options + " -cn A"
+            grid_path = "{plot_path}/{date}.{abbrv}.a.{hemisphere}."\
+                        "grid".format(date=self.parameter["date"],
+                                      plot_path=self.parameter['plot_path'],
+                                      abbrv=radar_abbrv,
+                                      hemisphere=self.hem_ext)
+            grid_options = grid_options + " -cn A"
         elif self.parameter['channel'] == 2:
-                grid_path = "{plot_path}/{date}.{abbrv}.b.{hemisphere}."\
-                            "grid".format(date=self.parameter["date"],
-                                          plot_path=self.parameter['plot_path'],
-                                          abbrv=radar_abbrv,
-                                          hemisphere=self.hem_ext)
-                grid_options = grid_options + " -cn B"
+            grid_path = "{plot_path}/{date}.{abbrv}.b.{hemisphere}."\
+                        "grid".format(date=self.parameter["date"],
+                                      plot_path=self.parameter['plot_path'],
+                                      abbrv=radar_abbrv,
+                                      hemisphere=self.hem_ext)
+            grid_options = grid_options + " -cn B"
         else:
             if channelB > 0:
                 grid_path = "{plot_path}/{date}.{abbrv}.b.{hemisphere}."\
@@ -448,7 +445,8 @@ class ConvectionMaps():
         self.make_grid(data_file, grid_path, grid_options)
         return result
 
-    # Maybe move this function to utils?
+    # TODO: Check for channels in file, modern files should separate channels
+    # but older ones do not
     def _check_for_channel(self, data_file, channel_num):
         """
         A method to check for the channel number in a fitacf file
@@ -459,13 +457,13 @@ class ConvectionMaps():
                           "".format(filename=data_file,
                                     channel=channel_num)
         try:
-            channel_count = check_output(channel_command, shell=True)
-        except CalledProcessError as e:
+            channel_count = sp.check_output(channel_command, shell=True)
+        except sp.CalledProcessError as e:
             channel_count = e.output  # Gets the output of the command
         return int(channel_count)
 
     def make_grid(self, data_file, grid_file, grid_options=""):
-        make_grid_command = "make_grid {gridoptions} -tl 60 -xtd"\
+        make_grid_command = "make_grid {gridoptions} -xtd"\
                             " -minrng 10"\
                             " -vemax {max_velocity}"\
                             " {datafile} > {gridpath}"\
@@ -476,6 +474,7 @@ class ConvectionMaps():
                                       datafile=data_file,
                                       gridpath=grid_file)
 
+        print('Grid Command Used:/n')
         print(make_grid_command)
         try:
             check_rst_command(make_grid_command, grid_file)
@@ -523,8 +522,6 @@ class ConvectionMaps():
         radar_abbrv = []
         if self.parameter['hemisphere'] == 'south':
             radar_abbrv = SouthRadar.RADAR_ABBRV
-        elif self.parameter['hemisphere'] == 'Canadian':
-            radar_abbrv = CanadianRadar.RADAR_ABBRV
         else:
             radar_abbrv = NorthRadar.RADAR_ABBRV
 
@@ -541,14 +538,14 @@ class ConvectionMaps():
                     # More Sanity checks, because the method is public
                     # we have to make sure the user is providing correct file types
                     data_file_ext = data_file.split('.')[-1]
-                    if data_file_ext not in RadarConst.COMPRESSION_TYPES and \
-                       data_file_ext not in RadarConst.FILE_TYPE:
+                    if data_file_ext not in FileConst.COMPRESSION_TYPES and \
+                       data_file_ext not in FileConst.FILE_TYPE:
                         msg = "Error: {datafiletype} file type or compression extension"\
                                 " is not supported. Please use one for the following"\
                                 " supported types: {filetypes} {compresiontypes}"\
                                 "".format(datafiletype=data_file_ext,
-                                          filetypes=RadarConst.FILE_TYPE,
-                                          compressiontypes=RadarConst.COMPRESSION_TYPES)
+                                          filetypes=FileConst.FILE_TYPE,
+                                          compressiontypes=FileConst.COMPRESSION_TYPES)
                         logging.error(msg)
                         raise UnsupportedTypeException(msg)
                     if not os.path.isfile(data_file):
@@ -580,12 +577,12 @@ class ConvectionMaps():
                                   " file exist in the folder".format(datafile=data_file)
                         raise OSError(message)  # TODO: better exception?
                     
-                    if data_file_ext in RadarConst.COMPRESSION_TYPES:
+                    if data_file_ext in FileConst.COMPRESSION_TYPES:
                         try:
                             compression_command = "{command} {datapath}"\
-                                                  "".format(command=RadarConst.EXT[data_file_ext],
+                                                  "".format(command=FileConst.EXT[data_file_ext],
                                                             datapath=data_path)
-                            call(compression_command, shell=True)
+                            sp.call(compression_command, shell=True)
                             data_file = re.sub('.'+data_file_ext,'', data_file)
                         except KeyError as err:
                             logging.warn(err)
@@ -594,7 +591,7 @@ class ConvectionMaps():
                                   " associated. Please use one of the following"\
                                   " implmented compressions types {compression}"\
                                   "".format(compresionext=data_file_ext,
-                                            compression=RadarConst.EXT)
+                                            compression=FileConst.EXT)
                             raise KeyError(msg)  # TODO: make a better exception for this case 
                     logging.info(data_file)
                     if os.path.getsize(data_file) == 0:
@@ -605,9 +602,8 @@ class ConvectionMaps():
                     logging.error(err)
                     continue
 
-            print("Made it here")
             try:
-                filename = "{path}/{date}*{abbrv}.{ext}"\
+                filename = "{path}/{date}*{abbrv}*.{ext}"\
                            "".format(path=self.parameter['plot_path'],
                                      date=self.parameter['date'],
                                      abbrv=abbrv,
@@ -622,7 +618,6 @@ class ConvectionMaps():
 
         # useful logging information for the user
         logging.info(self.radars_used)
-        logging.info(self.radars_missing)
         logging.info(self.radars_errors)
 
         if grid_file_counter == 0:
@@ -771,7 +766,7 @@ class ConvectionMaps():
                          "".format(plot_path=self.parameter['plot_path'],
                                    map_model=map_model_filename)
 
-        map_addmodel_command = "map_addmodel {options} -o 8 -d l "\
+        map_addmodel_command = "map_addmodel {options} -o 6 -d l "\
                                "{plot_path}/{input_map} > {plot_path}/{model_map}"\
                                "".format(options=self.rst_options,
                                          plot_path=self.parameter['plot_path'],
@@ -798,7 +793,8 @@ class ConvectionMaps():
                                     map_file=map_filename)
         check_rst_command(map_fit_command, map_path)
         try:
-            shutil.copy2(map_path, self.parameter["map_path"])
+            shutil.copy2(map_path, self.parameter["map_path"] + \
+                         "/{date}.map".format(date=self.parameter['date']))
         except shutil.Error:
             pass
 
@@ -840,7 +836,7 @@ class ConvectionMaps():
                                         ps_filename=ps_file,
                                         filename=image_filename,
                                         ext=self.parameter['image_ext'])
-            return_value = call(convert_command.split())
+            return_value = sp.call(convert_command.split())
             if return_value != 0:
                 logging.warn(ConvertWarning(ps_file,
                                             self.parameter['image_ext']))
@@ -863,7 +859,7 @@ class ConvectionMaps():
             os.remove(f)
         for f in glob(path+'*.map'):
             os.remove(f)
-        for ext in RadarConst.FILE_TYPE:
+        for ext in FileConst.FILE_TYPE:
             for f in glob('{path}*.{ext}*'.format(path=path, ext=ext)):
                 os.remove(f)
 
@@ -877,4 +873,4 @@ if __name__ == '__main__':
     # convec.setup_paths()
     convec.generate_grid_files()
     convec.generate_map_files()
-    convec.generate_RST_convection_maps()
+    # convec.generate_RST_convection_maps()

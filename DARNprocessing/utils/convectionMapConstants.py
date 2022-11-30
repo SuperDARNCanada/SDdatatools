@@ -2,11 +2,8 @@
 
 # Copyright 2017 SuperDARN Canada
 #
-# Marina Schmidt
-#
-# constants.py
-# 2018-01-31
-# Create classes containing constants that the script will need.
+# Author: Marina Schmidt
+# Date: 2018-01-31
 
 
 # The constants are defined at class-level and not module-level.
@@ -18,7 +15,7 @@
 
 class RstConst():
     """
-    Constatns for RST
+    Constants for RST
         Constants:
             MIN_RANGE: minimum range gate
             VEMAX: Velocity error maximum
@@ -47,7 +44,7 @@ class OmniConst():
     DELAY = 600
 
 
-class RadarConst():
+class FileConst():
     """
         Radar constants for file types and compression types
         Constants:
@@ -134,6 +131,7 @@ class SouthRadar():
  Hokkaido East (hok)
  Hokkaido West (hwk)
  Inuvik (inv)
+ Jiamusi East (jme)
  Clyde River (cly)
  Chritmas Valley East (cve)
  Christmas Valley West (cvw)
@@ -172,7 +170,7 @@ class NorthRadar():
                    'cve', 'cvw', 'cly',
                    'fhe', 'fhw', 'gbr',
                    'han', 'hok', 'hkw',
-                   'inv', 'kap', 'ksr',
+                   'inv', 'jme', 'kap', 'ksr',
                    'lyr', 'pyk', 'pgr',
                    'rkn', 'sas', 'sch',
                    'sto', 'wal', 'ksr',

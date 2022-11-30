@@ -15,7 +15,7 @@ from DARNprocessing.utils.convectionMapExceptions import (RSTException,
                                                           RSTFileEmptyException,
                                                           PathDoesNotExistException)
 
-def flag_options(program_name,program_desc,option_names,option_settings):
+def parse_command_line_args(program_name,program_desc,option_names,option_settings):
     """
     Parameter options is a utility to add options to runnable scripts
 

@@ -26,7 +26,7 @@ For quick and easy use for generation of convection maps and plots, one can also
 ## Dependencies 
 The following packages need to be installed before being able to use the following scripts
 * RST 4.1 and higher - https://github.com/SuperDARN/rst
-* python 2.7 or newer
+* Python 2.7 or higher
 
 ## Fitted data restrictions 
 Please be aware this library currently only works with fitacf (2.5 and 3.0), or lmfit2 data types. Fit files must be converted to either fitacf or lmfit2. 
@@ -68,5 +68,5 @@ To get information on all possible options use `--help`
     fitdata2map.py --help
 
 
-## Developement 
+## Development 
 
