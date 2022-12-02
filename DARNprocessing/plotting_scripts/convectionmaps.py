@@ -138,7 +138,7 @@ class ConvectionMaps():
         self.channel = ['', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 
         # Logging information setup
-        FORMAT = "%(levelname)s %(asctime): %(message)s"
+        FORMAT = "%(levelname)s %(asctime)s: %(message)s"
         logging.basicConfig(filename=self.parameter['logfile'],
                             format=FORMAT,
                             level=logging.DEBUG)
@@ -591,8 +591,8 @@ class ConvectionMaps():
                                             compression=FileConst.EXT)
                             raise KeyError(msg)  # TODO: make a better exception for this case 
                     file_name = os.path.basename(data_file)
-                    logging.info('Reading in data from: ', file_name)
-                    self.radars_used += file_name + ' /n'
+                    logging.info('Reading in data from: {}'.format(str(file_name)))
+                    self.radars_used += '{} \n'.format(str(file_name))
                     if os.path.getsize(data_file) == 0:
                         logging.warn(EmptyDataFileWarning(data_file))
                         self.radars_errors += data_file + '\n'

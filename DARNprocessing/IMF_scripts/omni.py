@@ -120,7 +120,7 @@ class Omni():
                        '"activity=ftp&res=min&spacecraft=omni_min&'\
                        'start_date={start_time}&end_date={date}23&vars=13&'\
                        'vars=14&vars=17&vars=18&submit=Submit" '\
-                       'https://omniweb.sci.gsfc.nasa.gov/cgi/nx1.cgi'\
+                       'https://omniweb.gsfc.nasa.gov/cgi/nx1.cgi'\
                        ' | grep -oh http.*.lst\\"'\
                        ' | grep -oh http.*.lst'.format(start_time=self.omni_start_time,
                                                        date=self.date)
