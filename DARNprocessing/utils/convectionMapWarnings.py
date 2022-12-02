@@ -24,7 +24,7 @@ class OmniFileNotGeneratedWarning(Warning):
             "date {date}. The omni data will not be used in the "\
             "convection map  process".format(filename=self.omni_filename,
                                              date=self.date)
-        Warning.__ini__(self, self.message)
+        Warning.__init__(self, self.message)
 
 
 class OmniFileNotFoundWarning(Warning):
@@ -35,7 +35,7 @@ class OmniFileNotFoundWarning(Warning):
             :param omni_filename: file name of the omni file
     """
     def __init__(self):
-        self.message = "No ONMI file was found "\
+        self.message = "No ONMI file was found "
         Warning.__init__(self, self.message)
 
 
