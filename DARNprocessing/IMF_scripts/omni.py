@@ -150,7 +150,7 @@ class Omni():
             call(download_file_command.split())
         except CalledProcessError as e:
             logging.warning('An error occurred and OMNI file was not',
-                            'downloaded. A magnetic field of [0,0,0] will'.
+                            'downloaded. A magnetic field of [0,0,0] will',
                             'be used instead.')
             raise OmniFileNotGeneratedWarning(self.omni_filename,
                                               self.date)
