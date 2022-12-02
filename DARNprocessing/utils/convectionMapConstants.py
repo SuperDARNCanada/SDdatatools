@@ -6,13 +6,6 @@
 # Date: 2018-01-31
 
 
-# The constants are defined at class-level and not module-level.
-# I know this is not PEP8 style however, it is a prefferred
-# method to keep seperation, readibility, and if the coder wants to
-# create errors on attempts to change the constants they can do it in the class.
-
-# TODO: these will probably become obsolete in the future as newer methods/options will be used
-
 class RstConst():
     """
     Constants for RST
@@ -83,6 +76,7 @@ class FileConst():
  Buckland Park (bkp)
  South Pole Station (sps)
  Dome C East (dce)
+ Dome C North (dcn)
 """
 
 
@@ -93,26 +87,11 @@ class SouthRadar():
             SINGLE_TO_ABBRV: single abbrevations to 3-letter acronyms, used for
                             converting fit to fitacf files
             RADAR_ABBRV: South radar 3-letter acrnyms
-        Stereo radar constants:
-            CHANNEL_ONE_ABBRV: radars that have channel 'a' extension
-                               <may not be needed anymore>
-            CHANNEL_TWO_ABBRV: radars that have a channel 'b' extension
-            CHANNEL_THREE_ABBRV: radars that have a channel 'c' extension
-            CHANNEL_FOUR_ABBRV: radars that have a channel 'd' extension
     """
     SINGLE_TO_ABBRV = {'h': 'hal', 'j': 'sys', 'd': 'san', 'n': 'sye',
                        'p': 'ker', 'r': 'tig', 'u': 'unw'}
-    RADAR_ABBRV = ['bpk', 'dce', 'fir',
-                   'hal', 'ker', 'san',
-                   'sye', 'sys', 'tig',
-                   'unw', 'zho', 'mcm',
-                   'sps']
-
-    # TODO: delete? may not be needed
-    CHANNEL_ONE_ABBRV = ['mcm.a', 'sps.a']
-    CHANNEL_TWO_ABBRV = ['mcm.b', 'sps.b']
-    CHANNEL_THREE_ABBRV = ['mcm.c', 'sps.c']
-    CHANNEL_FOUR_ABBRV = ['mcm.d', 'sps.d']
+    RADAR_ABBRV = ['bpk', 'dce', 'dcn', 'fir', 'hal', 'ker', 'san', 'sye',
+                   'sys', 'tig', 'unw', 'zho', 'mcm', 'sps']
 
 
 """
@@ -155,71 +134,12 @@ class NorthRadar():
                             converting fit to fitacf files
             RADAR_ABBRV: North Radar 3-letter acronyms
 
-        Stereo radar constants:
-            CHANNEL_ONE_ABBRV: radars that have channel 'a' extension
-                               <may not be needed anymore>
-            CHANNEL_TWO_ABBRV: radars that have a channel 'b' extension
-            CHANNEL_THREE_ABBRV: radars that have a channel 'c' extension
-            CHANNEL_FOUR_ABBRV: radars that have a channel 'd' extension
-
     """
-    SINGLE_TO_ABBRV = {'g': 'gbr', 'k': 'kap', 't': 'sas',
-                       'w': 'sto', 'f': 'han', 'e': 'pyk',
+    SINGLE_TO_ABBRV = {'g': 'gbr', 'k': 'kap', 't': 'sas', 's': 'sch',
+                       'w': 'sto', 'f': 'han', 'e': 'pyk', 'i': 'wal',
                        'a': 'kod', 'b': 'pgr', 'c': 'ksr'}
-    RADAR_ABBRV = ['ade', 'adw', 'bks',
-                   'cve', 'cvw', 'cly',
-                   'fhe', 'fhw', 'gbr',
-                   'han', 'hok', 'hkw',
-                   'inv', 'jme', 'kap', 'ksr',
-                   'lyr', 'pyk', 'pgr',
-                   'rkn', 'sas', 'sch',
-                   'sto', 'wal', 'ksr',
-                   'kod', 'kod.a', 'kod.b', 'kod.c', 'kod.d', 
-                   'adw.a', 'adw.b', 'adw.c', 'adw.d',
-                   'ade.a', 'ade.b', 'ade.c', 'ade.d'
-                   'ksr.a', 'ksr.b', 'ksr.c', 'ksr.d']
+    RADAR_ABBRV = ['ade', 'adw', 'bks', 'cve', 'cvw', 'cly', 'fhe', 'fhw',
+                   'gbr', 'han', 'hok', 'hkw', 'inv', 'jme', 'kap', 'ksr',
+                   'kod', 'lyr', 'pyk', 'pgr', 'rkn', 'sas', 'sch', 'sto',
+                   'wal']
 
-    CHANNEL_ONE_ABBRV = ['ksr.a',  'ade.a', 'adw.a']
-    CHANNEL_TWO_ABBRV = ['ksr.b', 'ade.b', 'adw.b']
-    CHANNEL_THREE_ABBRV = ['kod.c']
-    CHANNEL_FOUR_ABBRV = ['kod.d']
-
-
-"""
-Canadian Radars:
-    Saskatoon   (sas)
-    Rankin Inlet (rkn)
-    Inuvik  (inv)
-    Prince George (pgr)
-    Clyde River (cly)
-"""
-
-
-class CanadianRadar():
-    """
-    Candian Radar constants
-
-        Constants:
-            SINGLE_TO_ABBRV: single abbrevations to 3-letter acronyms, used for
-                            converting fit to fitacf files
-            RADAR_ABBRV: Canadian Radar 3-letter acronyms
-    """
-    SINGLE_TO_ABBRV = {'t': 'sas',
-                       'b': 'pgr'}
-    RADAR_ABBRV = {'cly',
-                   'inv',
-                   'pgr',
-                   'rkn',
-                   'sas'}
-
-
-# TODO: these may not be used anymore as well
-class ErrorCodes():
-    """
-        Error codes that the code can return... but this is not pythonic?
-    """
-    ERROMNIFILE = 1
-    ERROMNIBADDATA = 2
-    ERRFILENOTFOUND = 3
-    ERREMPTYFILE = 4
-    ERRRST = 5

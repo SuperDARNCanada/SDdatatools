@@ -127,8 +127,6 @@ class ConvectionMaps():
             hemisphere_identifier = 'n'
         elif self.parameter['hemisphere'] == 'south':
             hemisphere_identifier = 's'
-        else:
-            hemisphere_identifier = 'c'
         self.parameter.update({'logfile': '{path}/{date}_map.{hemisphere}.log'.format(path=self.parameter['logpath'],
                                                                                       date=self.parameter['date'],
                                                                                       hemisphere=hemisphere_identifier)})
@@ -153,8 +151,8 @@ class ConvectionMaps():
         self.rst_options = ""
 
         # Logging information on radars used, and radars that gave errors
-        self.radars_used = "Radar files used in map file production:\n"
-        self.radars_errors = "Radars files that raised errors:\n"
+        self.radars_used = "***Radar files used in production:***\n"
+        self.radars_errors = "***Radars files that raised errors:***\n"
 
         if self.parameter['hemisphere'] == 'south':
             self.hem_ext = 's'
@@ -332,7 +330,7 @@ class ConvectionMaps():
 
 
         logging.info("The following data files will be"
-                     " stored in the following paths")
+                     " stored in the following paths:")
         logging.info("Plot path: " + self.parameter['plot_path'])
         logging.info("Grid path: " + self.parameter['grid_path'])
         logging.info("Map files path: " + self.parameter['map_path'])
@@ -474,9 +472,8 @@ class ConvectionMaps():
                                       datafile=data_file,
                                       gridpath=grid_file)
 
-        print('Grid Command Used:/n')
-        print(make_grid_command)
         try:
+            logging.info('*** MAKE GRID ***')
             check_rst_command(make_grid_command, grid_file)
 
         except RSTException as err:
@@ -593,7 +590,9 @@ class ConvectionMaps():
                                   "".format(compresionext=data_file_ext,
                                             compression=FileConst.EXT)
                             raise KeyError(msg)  # TODO: make a better exception for this case 
-                    logging.info(data_file)
+                    file_name = os.path.basename(data_file)
+                    logging.info('Reading in data from: ', file_name)
+                    self.radars_used += file_name + ' /n'
                     if os.path.getsize(data_file) == 0:
                         logging.warn(EmptyDataFileWarning(data_file))
                         self.radars_errors += data_file + '\n'
@@ -638,6 +637,7 @@ class ConvectionMaps():
                                          grdpath=grd_path,
                                          hemisphere=self.hem_ext)
 
+        logging.info('*** COMBINE GRID ***')
         check_rst_command(combine_grid_command, grd_path)
 
     def generate_map_files(self):
@@ -672,6 +672,7 @@ class ConvectionMaps():
                                     filename=empty_map_filename,
                                     hemisphere=self.hem_ext)
 
+        logging.info('*** MAKE EMPTY MAP ***')
         check_rst_command(map_grd_command, empty_map_path)
 
         hmb_map_filename = "{date}.{hemisphere}.hmb.map"\
@@ -688,6 +689,7 @@ class ConvectionMaps():
                                        empty_map=empty_map_filename,
                                        hmb_map=hmb_map_filename)
 
+        logging.info('*** ADD HMB ***')
         check_rst_command(map_addhmb_command, hmb_map_path)
 
         imf_filename = '{imf_path}/{date}_imf.txt'.format(imf_path=self.parameter['imf_path'],
@@ -754,6 +756,7 @@ class ConvectionMaps():
                                        hmb_map=hmb_map_filename,
                                        imf_map=imf_map_filename)
 
+        logging.info('*** ADD IMF ***')
         check_rst_command(map_addimf_command, imf_map_path)
         self._imf_option = " -imf"
         input_model_file = imf_map_filename
@@ -772,6 +775,7 @@ class ConvectionMaps():
                                          plot_path=self.parameter['plot_path'],
                                          input_map=input_model_file,
                                          model_map=map_model_filename)
+        logging.info('*** ADD MODEL ***')
         check_rst_command(map_addmodel_command, map_model_path)
 
         if self.parameter['hemisphere'] == 'south':
@@ -791,6 +795,7 @@ class ConvectionMaps():
                                     plot_path=self.parameter['plot_path'],
                                     model_map=map_model_filename,
                                     map_file=map_filename)
+        logging.info('*** MAP FITTING ***')
         check_rst_command(map_fit_command, map_path)
         try:
             shutil.copy2(map_path, self.parameter["map_path"] + \
@@ -803,7 +808,7 @@ class ConvectionMaps():
         Generates the convection maps using the RST map_plot function.
         """
 
-        logging.info("Generating Convection Maps uring RST ")
+        logging.info("Generating Convection Maps using RST ")
         # TODO: A better method of importing the key file and
         # what to do when it is not provided
         key_option = "-vkeyp -vkey rainbow.key"

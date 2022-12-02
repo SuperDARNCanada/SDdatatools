@@ -30,9 +30,7 @@ class Omni():
             logfile = date + "_omni.log"
             logging.basicConfig(logfile, level=logging.DEBUG)
         else:
-            logging.info("*"*30)
-            logging.info("Omni Class")
-            logging.info("*"*30)
+            logging.info("*** OMNI DATA ***")
 
         self.date = date
         self.omni_filename = "{}_omni.txt".format(self.date)
@@ -41,7 +39,7 @@ class Omni():
                                                     filename=self.omni_filename)
         self.imf_path = "{path}/{filename}".format(path=omni_path,
                                                    filename=self.imf_filename)
-        logging.info("File names:")
+        logging.info("Searching for files:")
         logging.info(self.omni_filename)
         logging.info(self.imf_filename)
 
@@ -50,7 +48,7 @@ class Omni():
             timedelta(minutes=10)  # Omni time delay is ~10 minutes
         self.omni_start_time = omni_start_datetime.strftime("%Y%m%d%H")
 
-    def get_data_avialability(self):
+    def get_data_availability(self):
         """
         get data availability, get the most updated data availability off of:
             https://omniweb.gsfc.nasa.gov/html/ow_data.html for IMF data.
@@ -64,13 +62,14 @@ class Omni():
         # by looking for the most recent year 1963 in their database and IMF
         # label.
         curl_command = "curl https://omniweb.gsfc.nasa.gov/html/ow_data.html 2>/dev/null | grep '1963.*IMF' "
+        logging.info('Getting OMNI data availability:')
         logging.info(curl_command)
 
         try:
             omni_update_time = check_output(curl_command, shell=True)
         except CalledProcessError as e:
-            logging.warn("could not get the date the"
-                         " last time the file was updated")
+            logging.warn("Could not get the date the"
+                         " last time the file was updated.")
             raise OmniException(e)
 
         # returns the omni updated time as a datetime object
@@ -85,7 +84,7 @@ class Omni():
         Returns true if the omni file on the website has been updated since
         the last download.
         """
-        logging.info("Checking for updats on the omni file")
+        logging.info("Checking for updates for OMNI file:")
         if omni_filename:
             self.omni_filename = omni_filename
 
@@ -94,10 +93,10 @@ class Omni():
                                    omnifile=self.omni_filename)
 
         if not os.path.isfile(omni_file_path):
-            raise OmniFileNotFoundWarning(omni_filename)
+            raise OmniFileNotFoundWarning()
 
         try:
-            omni_modified_date = self.get_data_avialability()
+            omni_modified_date = self.get_data_availability()
         except OmniException as e:
             logging.warning("Exception from get_update_omni_date {}".format(e))
             return False
@@ -116,7 +115,7 @@ class Omni():
         """
         Downloads the omni file for the given date.
         """
-        logging.info("get_omni_file")
+        logging.info("Downloading new OMNI file:")
         curl_command = 'curl -d  '\
                        '"activity=ftp&res=min&spacecraft=omni_min&'\
                        'start_date={start_time}&end_date={date}23&vars=13&'\
@@ -150,6 +149,9 @@ class Omni():
         try:
             call(download_file_command.split())
         except CalledProcessError as e:
+            logging.warning('An error occurred and OMNI file was not',
+                            'downloaded. A magnetic field of [0,0,0] will'.
+                            'be used instead.')
             raise OmniFileNotGeneratedWarning(self.omni_filename,
                                               self.date)
 
@@ -163,7 +165,7 @@ class Omni():
         Parses the omni file into a IMF file format such that the RST code can
         use it the convection map process.
         """
-        logging.info("omnifile to IMFfile")
+        logging.info("Converting OMNI file to IMF format for RST")
         if omni_filename:
             self.omni_filename = omni_filename
 

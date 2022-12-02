@@ -34,11 +34,8 @@ class OmniFileNotFoundWarning(Warning):
         Parameters:
             :param omni_filename: file name of the omni file
     """
-    def __init__(self, omni_filename):
-        self.omni_filename = omni_filename
-        self.message = "{} file found was"\
-            " not found. The omni data will not be used in"\
-            " in the convection map process.".format(self.omni_filename)
+    def __init__(self):
+        self.message = "No ONMI file was found "\
         Warning.__init__(self, self.message)
 
 
