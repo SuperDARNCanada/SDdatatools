@@ -97,16 +97,21 @@ class ConvectionMaps():
         self._current_date = datetime.now()
         self._current_path = os.getcwd()
 
+        # If the parameters are read in from a python program, use those
+        # If there are no parameters but arguments are read in from
+        # command line, convert those to parameters dictionary
+        # If there are parameters read in, make sure they're all there
+        # and use the defaults if not
         if not parameters:
             self.create_command_line_args(arguments)
         else:
+            # Default values
             self.parameter = {'date': None,
-                              'channel': 5,
+                              'channel': '',
                               'integration_time': 120,
                               'hemisphere': 'north',
                               'start_time': '00:00',
                               'end_time': '23:59',
-                              'rst_version': 4.1,
                               'image_ext': 'pdf',
                               'logpath': self._current_path,
                               'data_path': self._current_path,
@@ -117,24 +122,33 @@ class ConvectionMaps():
                               'key_path': self._current_path,
                               'num_proc': 1}
 
+            # Get defaults and then update with any new parameters read in
             self.parameter.update(parameters)
-            # Required field
-            if not self.parameter['date']:
+            # Date is the only required field
+            if self.parameter['date'] is None:
                 raise ValueError("Date was not passed in, please"
                                  "include in the parameters dictionary")
-        
+
+        # Convert the hemisphere to char and correct parameter
         if self.parameter['hemisphere'] == 'north':
             hemisphere_identifier = 'n'
+            self.hem_ext = 'n'
         elif self.parameter['hemisphere'] == 'south':
             hemisphere_identifier = 's'
-        self.parameter.update({'logfile': '{path}/{date}_map.{hemisphere}.log'.format(path=self.parameter['logpath'],
-                                                                                      date=self.parameter['date'],
-                                                                                      hemisphere=hemisphere_identifier)})
+            self.hem_ext = 's'
 
-        # check if the data path exists otherwise we cannot porceed.
+        # Set log file path
+        self.parameter.update({'logfile':
+                               '{path}/{date}_map.{hemisphere}.log'
+                               .format(path=self.parameter['logpath'],
+                                       date=self.parameter['date'],
+                                       hemisphere=hemisphere_identifier)})
+
+        # Check if the data path exists
         path_exists(self.parameter['data_path'])
 
-        # possible letters used for channel names - TODO: allow any char
+        # Possible letters used for channel names - TODO: allow any char
+        # Does this line need to be included?
         self.channel = ['', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 
         # Logging information setup
@@ -142,33 +156,30 @@ class ConvectionMaps():
         logging.basicConfig(filename=self.parameter['logfile'],
                             format=FORMAT,
                             level=logging.DEBUG)
+        # Log parameters used to make map files
         logging.info("Parameter list:" + str(self.parameter))
 
-        # Generate map path and plot path if they do not exist
+        # Generate map path and plot path if they do not exist, log what paths
+        # are being used
         self._generate_paths()
 
-        # TODO clean up rst options and make it a requirement to use only rst 4.0 and higher
+        # TODO: not be hardcoded if special rst options are needed
         self.rst_options = ""
 
         # Logging information on radars used, and radars that gave errors
+        # Not logged here, logged later with additions
         self.radars_used = "***Radar files used in production:***\n"
         self.radars_errors = "***Radars files that raised errors:***\n"
 
-        if self.parameter['hemisphere'] == 'south':
-            self.hem_ext = 's'
-        else:
-            self.hem_ext = 'n'
 
-    # TODO: Look for more possible options to add here for changing convection maps
     def create_command_line_args(self, arguments):
         """
         Argument parser - parses the argument passed into the script into a
-                    parameter dictionary.
+                    parameter dictionary. Used when called from command line.
 
             :param arguments: sys.args
         """
-
-        # Note: -h is reserved for --help feature thus -H for hemisphere
+        # Note: -h is reserved for --help so -H for hemisphere
         option_names = [('date'),
                         ('-c', '--channel'),
                         ('-i', '--integration-time'),
@@ -177,7 +188,6 @@ class ConvectionMaps():
                         ('-e', '--end-time'),
                         ('-x', '--image-ext'),
                         ('-l', '--logpath'),
-                        #('-f','--data-format'),  maybe something to add in the future?
                         ('-d', '--data-path'),
                         ('-f', '--imf-path'),
                         ('-p', '--plot-path'),
@@ -185,21 +195,23 @@ class ConvectionMaps():
                         ('-g', '--grid-path'),
                         ('-k', '--key-path'),
                         ('-v', '--verbose')]
+        # Sets Defaults if option not used
         option_settings = [{'type': str,
                             'metavar': 'YYYYMMDD',
                             'help': 'The date of the fitacf data.'},
-                           {'type': int,
-                            'choices': [0, 1, 2, 3, 4, 5],
-                            'default': 5,
-                            'help': 'Select the channel number of data'
-                            ' to use for the convection map process.'
-                            ' Default: 5 - use all channels'},
+                           {'type': str,
+                            'choices': ['', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'],
+                            'default': '',
+                            'help': 'Select the channel letter. Either a'
+                            ' single character e.g. "a" to use for'
+                            ' the convection map process.'
+                            ' Default: '' - use all channels'},
                            {'type': int,
                             'default': '120',
                             'help': 'Integration time between each plot in seconds.'
                             ' Default: 120 - 2 minute convection plots'},
                            {'type': str,
-                            'choices': ['north', 'south', 'Canadian'],
+                            'choices': ['north', 'south'],
                             'default': 'north',
                             'help': 'The hemisphere you want to assimilate.'
                             ' Default: north'},
@@ -265,68 +277,22 @@ class ConvectionMaps():
                                       option_names,
                                       option_settings)
 
-    def set_data_path(self, new_data_path):
-        """
-        set the data path, used when the user wants to change the data path half
-        way through but does not want to reinput all the setting info.
-
-        Example of usage: comparison betweeen lmfit2 and fitacf files
-
-            :param new_data_path: str of the new data path
-        """
-        self.parameter['data_path'] = new_data_path
-        path_exists(self.parameter['data_path'])
-
-    def set_date(self, new_date):
-        """
-        set the date, used when the user wants to change the date without
-        changing the other settings.
-
-            :param new_date: str in the format YYYYMMDD of the new date
-        """
-        self.parameter['date'] = new_date
-
-    def set_plot_path(self, new_plot_path):
-        """
-        set the plot_path, used when the user wants to change the plot path
-        without changing the other settings.
-
-            :param new_plot_path: str the new plot path
-        """
-        self.parameter['plot_path'] = new_plot_path
-        self._generate_paths()
-
-    def set_hemisphere(self, new_hemisphere):
-        """
-        set the hemisphere, used when the user wants to change the hemisphere
-        without changing the other settings.
-
-            :param new_hemisphere: ['north','south','Canadian']
-                                   the new hemisphere
-        """
-        if new_hemisphere not in ['north', 'south', 'Canadian']:
-            raise ValueError("{hemisphere} is not of the following options:"
-                             " north, south, Canadian"
-                             "".format(hemisphere=new_hemisphere))
-        self.parameter['hemisphere'] = new_hemisphere
-
-    # TODO: finish other set functions.
 
     def _generate_paths(self):
         """
-        generate the folder paths for the various file paths
+        Generate the directory paths and log information
         """
         for path in [self.parameter['plot_path'],
                      self.parameter['map_path'],
                      self.parameter['grid_path']]:
             try:
                 path_exists(path)
-            except PathDoesNotExistException as err:
+            except PathDoesNotExistException:
                 try:
                     os.makedirs(path)
                 except OSError as err:
-                        logging.info(err)
-                        pass
+                    logging.info(err)
+                    pass
 
 
         logging.info("The following data files will be"
@@ -338,7 +304,27 @@ class ConvectionMaps():
         logging.info("The data for the convections maps is obtained from")
         logging.info("Data path: " + self.parameter['data_path'])
 
-    # TODO: implement parallel version
+
+    def _check_for_channel(self, data_file, channel_char):
+        """
+        A method to check if a channel exists inside a file rather than in
+        separate files. Returns True if channel exists in file, returns
+        False if no records with channel found.
+        """
+        channel_command = "dmapdump {filename} "\
+                          "| grep -c '\"channel\" = {channel}'"\
+                          "".format(filename=data_file,
+                                    channel=channel_char)
+        try:
+            channel_count = sp.check_output(channel_command, shell=True)
+            if channel_count > 0:
+                return True
+            else:
+                return False
+        except sp.CalledProcessError:
+            return False
+
+
     def generate_radar_grid_file(self, radar_abbrv, data_file):
         """
         Helper function for generate_grid_files to generate a grid file(s) for
@@ -347,14 +333,11 @@ class ConvectionMaps():
 
             :param radar_abbrv: 3 letter acroynm of the radar
             :param data_file: str fitted data file name with full extension
-            :raise ValueError: if the radar abbrevation is not in the data file
+            :raise ValueError: if the radar abbreviation is not in the data file
                                name which means it could be generating the wrong
                                grid file.
         """
-
-        # Sanity check
-        print(data_file)
-        if(radar_abbrv not in data_file):
+        if radar_abbrv not in data_file:
             logging.error('Mismatched radar abbreviation: {radar} and file name'
                           ' {filename}'.format(radar=radar_abbrv,
                                                filename=data_file))
@@ -363,111 +346,60 @@ class ConvectionMaps():
                                                   filename=data_file))
 
         grid_options = ''
-        # Standard naming convention for grid files
+        # Uses standard naming convention for grid files
         grid_filename = "{date}.{abbrv}.{hemisphere}."\
                 "grid".format(date=self.parameter['date'],
                               abbrv=radar_abbrv,
                               hemisphere=self.hem_ext)
 
-        grid_path = "{plot_path}/{grid_file}"\
-                    "".format(plot_path=self.parameter['plot_path'],
+        grid_path = "{grid_path}/{grid_file}"\
+                    "".format(grid_path=self.parameter['grid_path'],
                               grid_file=grid_filename)
 
-        result = 0
-        grid_options += '-c -tl 120 -i ' + \
-            str(self.parameter['integration_time'])
+        # Set up options in make_grid. -tl ignores scan flag and sets scans at
+        # time interval (120 here default for map files)
+        grid_options += ' -tl 120 -i ' + str(self.parameter['integration_time'])
 
-        # TODO: More than 2 channels in files but in general we're using all
-        # channels or just the first one for map production.
-        channelA = 0
-        channelB = 0
-        monochannel = 0
-        for filename in glob(data_file):
-            channelA += self._check_for_channel(filename, 1)
-            channelB += self._check_for_channel(filename, 2)
-            monochannel += self._check_for_channel(filename, 0)
-
-        #TODO: Unlimited channels chars
-        chans = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-        for chan in chans:
+        # TODO: Unlimited channels chars?
+        # You can choose to use all channels, or a single channel
+        # If all channels chosen, iterate over a to h - most wont exist
+        # All channels are automatically used in RST so only the output files
+        # are amended to state which files used
+        if self.parameter['channel'] == '':
+            chans = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+            for chan in chans:
+                if '.{}.'.format(chan) in data_file:
+                    grid_options = grid_options + " -cn_fix {}".format(chan)
+                elif self._check_for_channel(data_file, chan):
+                    grid_options = grid_options + " -cn_fix {}".format(chan)
+        # If a channel is chosen
+        elif not self.parameter['channel'] == '':
+            # If a separate file for that channel exists
             if '.{}.'.format(chan) in data_file:
-                grid_options = grid_options + " -cn_fix {}".format(chan)
-        
-        if self.parameter['channel'] == 0:
-            grid_path = "{plot_path}/{date}.{abbrv}.{hemisphere}."\
-                        "grid".format(date=self.parameter["date"],
-                                      plot_path=self.parameter['plot_path'],
-                                      abbrv=radar_abbrv,
-                                      hemisphere=self.hem_ext)
-        elif self.parameter['channel'] == 1:
-            grid_path = "{plot_path}/{date}.{abbrv}.a.{hemisphere}."\
-                        "grid".format(date=self.parameter["date"],
-                                      plot_path=self.parameter['plot_path'],
-                                      abbrv=radar_abbrv,
-                                      hemisphere=self.hem_ext)
-            grid_options = grid_options + " -cn A"
-        elif self.parameter['channel'] == 2:
-            grid_path = "{plot_path}/{date}.{abbrv}.b.{hemisphere}."\
-                        "grid".format(date=self.parameter["date"],
-                                      plot_path=self.parameter['plot_path'],
-                                      abbrv=radar_abbrv,
-                                      hemisphere=self.hem_ext)
-            grid_options = grid_options + " -cn B"
-        else:
-            if channelB > 0:
-                grid_path = "{plot_path}/{date}.{abbrv}.b.{hemisphere}."\
-                            "grid".format(date=self.parameter["date"],
-                                          plot_path=self.parameter['plot_path'],
-                                          abbrv=radar_abbrv,
-                                          hemisphere=self.hem_ext)
-                grid_optionsB = grid_options + " -cn B"
-                self.make_grid(data_file, grid_path, grid_optionsB)
+                grid_options = grid_options + " -cn {} -cn_fix {}"\
+                                    .format(self.parameter['channel'],
+                                            self.parameter['channel'])
+            # Else if that channel is found inside the file
+            elif self._check_for_channel(data_file, self.parameter['channel']):
+                grid_options = grid_options + " -cn {} -cn_fix {}"\
+                                    .format(self.parameter['channel'],
+                                            self.parameter['channel'])
+        # Make the grid with chosen options
+        status = self.make_grid(data_file, grid_path, grid_options)
+        # Return status code 0 if all ran well
+        return status
 
-            if channelA > 0:
-              grid_path = "{plot_path}/{date}.{abbrv}.a.{hemisphere}."\
-                          "grid".format(date=self.parameter["date"],
-                                        plot_path=self.parameter['plot_path'],
-                                        abbrv=radar_abbrv,
-                                        hemisphere=self.hem_ext)
-              grid_optionsA = grid_options + " -cn A"
-              self.make_grid(data_file, grid_path, grid_optionsA)
-            elif monochannel > 0:
-                grid_path = "{plot_path}/{date}.{abbrv}.{hemisphere}."\
-                            "grid".format(date=self.parameter["date"],
-                                          plot_path=self.parameter['plot_path'],
-                                          abbrv=radar_abbrv,
-                                          hemisphere=self.hem_ext)
-                self.make_grid(data_file, grid_path, grid_options)
-            return 0
-
-        self.make_grid(data_file, grid_path, grid_options)
-        return result
-
-    # TODO: Check for channels in file, modern files should separate channels
-    # but older ones do not
-    def _check_for_channel(self, data_file, channel_num):
-        """
-        A method to check for the channel number in a fitacf file
-        that may use mono and stero.
-        """
-        channel_command = "dmapdump {filename} "\
-                          "| grep -c '\"channel\" = {channel}'"\
-                          "".format(filename=data_file,
-                                    channel=channel_num)
-        try:
-            channel_count = sp.check_output(channel_command, shell=True)
-        except sp.CalledProcessError as e:
-            channel_count = e.output  # Gets the output of the command
-        return int(channel_count)
 
     def make_grid(self, data_file, grid_file, grid_options=""):
+        # Command:
+        # minrng - exclude data below minimum range
+        # vemax - exclude data above max velocity
+        # xtd - extended output including power and spectral width and errors
         make_grid_command = "make_grid {gridoptions} -xtd"\
                             " -minrng 10"\
                             " -vemax {max_velocity}"\
                             " {datafile} > {gridpath}"\
                             "".format(gridoptions=grid_options,
-                                      date=self.parameter['date'],
-                                      integration_time=self.parameter['integration_time'],
                                       max_velocity=RstConst.VEMAX,
                                       datafile=data_file,
                                       gridpath=grid_file)
@@ -475,42 +407,19 @@ class ConvectionMaps():
         try:
             logging.info('*** MAKE GRID ***')
             check_rst_command(make_grid_command, grid_file)
+            return 0
 
         except RSTException as err:
             logging.warn(err)
             self.radars_errors += data_file + '\n'
+            return 1
 
         except RSTFileEmptyException as err:
             self.radars_errors += data_file + '\n'
             logging.warn(err)
             os.remove(grid_file)
+            return 1
 
-    # TODO: might be a util method
-    def convert_fit_to_fitacf(self, file_path):
-        """
-        Converts fit data to fitacf with the standard naming convention used for
-        superDARN data.
-        Retruns the fitacf filename that the fit data was saved to and the radar
-        abbrevation associated to the letter.
-        """
-        match = re.search(r'([a-z])', os.path.basename(file_path))
-        radar_letter = match.group()
-        if self.parameter['hemisphere'] == 'south':
-            radar_abbrv = SouthRadar.SINGLE_TO_ABBRV[radar_letter]
-        else:
-            radar_abbrv = NorthRadar.SINGLE_TO_ABBRV[radar_letter]
-
-        fitacf_path = "{plot_path}/{date}.*.{abbrv}."\
-                      "fitacf".format(date=self.parameter['date'],
-                                      abbrv=radar_abbrv,
-                                      plot_path=self.parameter['plot_path'])
-        fittofitacf_command = "fittofitacf {filepath} >"\
-                              " {fitacf_filename}"\
-                              "".format(filepath=file_path,
-                                        fitacf_filename=fitacf_path)
-        check_rst_command(fittofitacf_command, fitacf_path)
-
-        return (fitacf_path, radar_abbrv)
 
     def generate_grid_files(self):
         """
@@ -539,7 +448,7 @@ class ConvectionMaps():
                        data_file_ext not in FileConst.FILE_TYPE:
                         msg = "Error: {datafiletype} file type or compression extension"\
                                 " is not supported. Please use one for the following"\
-                                " supported types: {filetypes} {compresiontypes}"\
+                                " supported types: {filetypes} {compressiontypes}"\
                                 "".format(datafiletype=data_file_ext,
                                           filetypes=FileConst.FILE_TYPE,
                                           compressiontypes=FileConst.COMPRESSION_TYPES)
@@ -580,16 +489,16 @@ class ConvectionMaps():
                                                   "".format(command=FileConst.EXT[data_file_ext],
                                                             datapath=data_path)
                             sp.call(compression_command, shell=True)
-                            data_file = re.sub('.'+data_file_ext,'', data_file)
+                            data_file = re.sub('.'+data_file_ext, '', data_file)
                         except KeyError as err:
                             logging.warn(err)
                             msg = "Error: The compression extension {compressionext} "\
                                   "does not have a corresponding compression command"\
                                   " associated. Please use one of the following"\
                                   " implmented compressions types {compression}"\
-                                  "".format(compresionext=data_file_ext,
+                                  "".format(compressionext=data_file_ext,
                                             compression=FileConst.EXT)
-                            raise KeyError(msg)  # TODO: make a better exception for this case 
+                            raise KeyError(msg)
                     file_name = os.path.basename(data_file)
                     logging.info('Reading in data from: {}'.format(str(file_name)))
                     self.radars_used += '{} \n'.format(str(file_name))
@@ -640,12 +549,14 @@ class ConvectionMaps():
         logging.info('*** COMBINE GRID ***')
         check_rst_command(combine_grid_command, grd_path)
 
+
     def generate_map_files(self):
         """
-        Generates the various map files for the radar fit/fitacf files availible for
-        the given date and hemisphere. The 'date.map' is the only saved file,
-        the other map files are removed at the end of the convection process.
+        Generates map files for the radar fitacf files availible for
+        the given date and hemisphere. Clean up any leftover files using
+        ConvectionMap.cleanup()
         """
+        # Make Empty Map File
         map_grd_options = ""
 
         if self.parameter['hemisphere'] == "south":
@@ -675,6 +586,7 @@ class ConvectionMaps():
         logging.info('*** MAKE EMPTY MAP ***')
         check_rst_command(map_grd_command, empty_map_path)
 
+        # Make HMB file
         hmb_map_filename = "{date}.{hemisphere}.hmb.map"\
                 "".format(date=self.parameter['date'],
                           hemisphere=self.hem_ext)
@@ -692,6 +604,7 @@ class ConvectionMaps():
         logging.info('*** ADD HMB ***')
         check_rst_command(map_addhmb_command, hmb_map_path)
 
+        # Make imf file
         imf_filename = '{imf_path}/{date}_imf.txt'.format(imf_path=self.parameter['imf_path'],
                                                           date=self.parameter['date'])
         imf_map_filename = "{date}.{hemisphere}.imf.map"\
@@ -701,15 +614,17 @@ class ConvectionMaps():
                        "".format(map_path=self.parameter['map_path'],
                                  imf_map=imf_map_filename)
 
-
+        # If there are no pre-existing files
         if not os.path.exists(imf_filename):
             omni = Omni(self.parameter['date'], self.parameter['map_path'])
 
             try:
+                # Make sure the files you have are updated
                 update = omni.check_for_updates()
                 if update:
                     old_omni_file = "{map_path}/{date}_omni_{currentdate}.txt"\
-                                    "".format(date=self.parameter['date'],
+                                    "".format(map_path=self.parameter['map_path'],
+                                              date=self.parameter['date'],
                                               currentdate=self._current_date.strftime("%Y%m%d"))
                     try:
                         shutil.move(omni.omni_path, old_omni_file)
@@ -720,10 +635,11 @@ class ConvectionMaps():
                 logging.warn(warning_msg)
                 update = True
 
+            # If there are no existing files, go get them from omni
             try:
                 if update:
                     omni.get_omni_file()
-
+                # Convert the omni output to imf RST format
                 omni.omnifile_to_IMFfile()
 
                 imf_filename = '{map_path}/{imf_file}'.format(map_path=self.parameter['map_path'],
@@ -743,14 +659,11 @@ class ConvectionMaps():
                 self._imf_option = ""
                 input_model_file = hmb_map_filename
 
-
-
         map_addimf_command = "map_addimf {options} -omni -d 00:10"\
                              " -if {imf_file}"\
                              " {plot_path}/{hmb_map} >"\
                              " {plot_path}/{imf_map}"\
                              "".format(options=self.rst_options,
-                                       map_path=self.parameter['map_path'],
                                        plot_path=self.parameter['plot_path'],
                                        imf_file=imf_filename,
                                        hmb_map=hmb_map_filename,
@@ -761,7 +674,7 @@ class ConvectionMaps():
         self._imf_option = " -imf"
         input_model_file = imf_map_filename
 
-
+        # Make model map file
         map_model_filename = "{date}.{hemisphere}.model.map"\
                              "".format(date=self.parameter['date'],
                                        hemisphere=self.hem_ext)
@@ -778,6 +691,7 @@ class ConvectionMaps():
         logging.info('*** ADD MODEL ***')
         check_rst_command(map_addmodel_command, map_model_path)
 
+        # Final map fit files
         if self.parameter['hemisphere'] == 'south':
             map_filename = "{date}.s.map".format(date=self.parameter['date'])
         elif self.parameter['hemisphere'] == 'north':
@@ -798,10 +712,11 @@ class ConvectionMaps():
         logging.info('*** MAP FITTING ***')
         check_rst_command(map_fit_command, map_path)
         try:
-            shutil.copy2(map_path, self.parameter["map_path"] + \
+            shutil.copy2(map_path, self.parameter["map_path"] +
                          "/{date}.map".format(date=self.parameter['date']))
         except shutil.Error:
             pass
+
 
     def generate_RST_convection_maps(self):
         """
@@ -836,7 +751,7 @@ class ConvectionMaps():
         for ps_file in glob(post_script_path):
             image_filename = ps_file.replace(".ps", "")
             convert_command = "convert -density 200 {ps_filename} "\
-                              " {filename}.{ext}"\
+                              " {plot_path}/{filename}.{ext}"\
                               "".format(plot_path=self.parameter['plot_path'],
                                         ps_filename=ps_file,
                                         filename=image_filename,
@@ -855,7 +770,7 @@ class ConvectionMaps():
 
         try:
             shutil.copy2(self.parameter['logfile'], self.parameter['map_path'])
-        except Exception as err:
+        except Exception:
             pass
 
         for f in glob(path+'*.fitacf'):
@@ -875,7 +790,7 @@ class ConvectionMaps():
 if __name__ == '__main__':
     import sys
     convec = ConvectionMaps(sys.argv[1:])
-    # convec.setup_paths()
     convec.generate_grid_files()
     convec.generate_map_files()
     # convec.generate_RST_convection_maps()
+    # convec.cleanup()

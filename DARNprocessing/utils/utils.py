@@ -8,14 +8,21 @@
 import os
 import logging
 import argparse
+import re
 from subprocess import call
 from glob import glob
+
 
 from DARNprocessing.utils.convectionMapExceptions import (RSTException,
                                                           RSTFileEmptyException,
                                                           PathDoesNotExistException)
 
-def parse_command_line_args(program_name,program_desc,option_names,option_settings):
+from DARNprocessing.utils.convectionMapConstants import (NorthRadar,
+                                                         SouthRadar)
+
+
+def parse_command_line_args(program_name, program_desc, option_names,
+                            option_settings):
     """
     Parameter options is a utility to add options to runnable scripts
 
@@ -29,20 +36,19 @@ def parse_command_line_args(program_name,program_desc,option_names,option_settin
                                    singlular letters and two hyphens for words
         :return options_object: passes back an options object the method can
                                 invoke to obtain the values from sys.argv
-
     """
     parser = argparse.ArgumentParser(prog=program_name,
                                      description=program_desc)
-    # required arguement
-    for option_name, option_setting in zip(option_names,option_settings):
+    # required argument
+    for option_name, option_setting in zip(option_names, option_settings):
         if type(option_name) is str:
-            parser.add_argument(option_name,**option_setting)
+            parser.add_argument(option_name, **option_setting)
         else:
-            parser.add_argument(*option_name,**option_setting)
-
+            parser.add_argument(*option_name, **option_setting)
 
     parameter = parser.parse_args()
     return vars(parameter)
+
 
 def path_exists(path):
     """
@@ -93,3 +99,29 @@ def check_rst_command(rst_command, filepath):
     for filename in glob(filepath):
         if os.path.getsize(filename) <= 0:
             raise RSTFileEmptyException(filename)
+
+
+def convert_fit_to_fitacf(self, file_path):
+    """
+    Converts fit data to fitacf with the standard naming convention used for
+    superDARN data.
+    Retruns the fitacf filename that the fit data was saved to and the radar
+    abbrevation associated to the letter.
+    """
+    match = re.search(r'([a-z])', os.path.basename(file_path))
+    radar_letter = match.group()
+    if self.parameter['hemisphere'] == 'south':
+        radar_abbrv = SouthRadar.SINGLE_TO_ABBRV[radar_letter]
+    else:
+        radar_abbrv = NorthRadar.SINGLE_TO_ABBRV[radar_letter]
+
+    fitacf_path = "{plot_path}/{date}.*.{abbrv}."\
+                  "fitacf".format(date=self.parameter['date'],
+                                  abbrv=radar_abbrv,
+                                  plot_path=self.parameter['plot_path'])
+    fittofitacf_command = "fittofitacf {filepath} >"\
+                          " {fitacf_filename}"\
+                          "".format(filepath=file_path,
+                                    fitacf_filename=fitacf_path)
+    check_rst_command(fittofitacf_command, fitacf_path)
+    return (fitacf_path, radar_abbrv)
