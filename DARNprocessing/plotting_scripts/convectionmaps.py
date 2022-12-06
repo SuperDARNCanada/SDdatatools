@@ -516,9 +516,11 @@ class ConvectionMaps():
                                      date=self.parameter['date'],
                                      abbrv=abbrv,
                                      ext=ext)
-                result = self.generate_radar_grid_file(abbrv, filename)
-                if result == 0: 
-                    grid_file_counter+=1
+                # If files exist for this radar
+                if glob(filename):
+                    result = self.generate_radar_grid_file(abbrv, filename)
+                    if result == 0: 
+                        grid_file_counter+=1
             except Exception as err:
                 print(err)
                 logging.error(err)
